@@ -18,9 +18,11 @@
    ; Helm
    helm helm-projectile
    ; Web
-   php-mode emmet-mode web-mode
+   php-mode emmet-mode web-mode rainbow-mode
    ; Lisp
    paredit rainbow-delimiters
+   ; Python
+   jedit
    ; Other
    highlight-symbol multiple-cursors
    rebox2 smooth-scroll hl-line
