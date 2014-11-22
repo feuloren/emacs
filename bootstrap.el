@@ -1,4 +1,4 @@
-; First of all we need MELPA
+;; First of all we need MELPA
 
 (require 'package)
 ;(add-to-list 'package-archives
@@ -7,23 +7,41 @@
       '("melpa" . "http://melpa.milkbox.net/packages/") t)
 
 
-; Then enable the proxy if needed
+;; Then enable the proxy if needed
 
 
-; And download all the packages !
+;; And download all the packages !
 (package-download-transaction
  '(
-   ; Essential
+   ;; Essential
    company-mode projectile undo-tree
-   ; Helm
-   helm helm-projectile
-   ; Web
+   ;; Helm
+   helm helm-projectile helm-ack
+   ;; Web
    php-mode emmet-mode web-mode rainbow-mode
-   ; Lisp
+   php-boris php-eldoc
+   ;; Lisp
    paredit rainbow-delimiters
-   ; Python
-   jedit
-   ; Other
+   ;; Python
+   anaconda-mode
+   ;; Clojure
+   clojure-mode cider clojure-cheatsheet clj-refactor cljsbuild-mode
+   ;; Misc
    highlight-symbol multiple-cursors
    rebox2 smooth-scroll hl-line
+   key-chord dired-details
+   ;; Org
+   htmlize
+   ;; Flycheck
+   flycheck flycheck-pyflakes
+   ;; VC
+   magit
+   ;; Theme
+   monokai-theme
+   ;; Libs
+   s dash
+   ;; Android
+   android-mode
+   ;; Scala
+   sbt scala-mode2
    ))
