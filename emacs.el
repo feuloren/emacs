@@ -38,11 +38,6 @@
 ;; load monokai theme
 (require 'monokai-theme)
 
-;; Highlight current line
-(global-hl-line-mode -1)
-(set-face-background 'hl-line "#101010")
-(set-face-foreground 'highlight nil)
-
 ; no menu bar, no toolbar, no scrollbar
 (tool-bar-mode 0)
 (menu-bar-mode 0)
@@ -112,7 +107,19 @@
 (global-set-key (kbd "C-x h") 'helm-projectile)
 
 (require 'helm-imenu)
-(define-key helm-map (kbd "C-c C-j") 'helm-imenu)
+(key-chord-define-global ")=" 'helm-imenu)
+
+(global-set-key (kbd "C-x b") 'helm-mini)
+
+(setq helm-mp-matching-method 'multi3)
+
+;; Make helm-do-grep easier to invoke
+(defun my-do-grep ()
+  "Run helm-do-grep recursiverly in current dir"
+  (interactive)
+  (helm-do-grep-1 (list (file-name-directory (buffer-file-name))) t nil '("*")))
+(global-set-key (kbd "<C-f2>") 'my-do-grep)
+
 (helm-mode t)
 
 ;;,--------------------------
@@ -125,8 +132,8 @@
 
 (add-hook 'prog-mode-hook 'highlight-symbol-mode)
 (add-hook 'org-mode-hook 'highlight-symbol-mode)
-(setq highlight-symbol-on-navigation-p t) ; enable highlighting symbol at point automatically
-(setq highlight-symbol-idle-delay 0.3)
+(setq highlight-symbol-on-navigation-p t ; enable highlighting symbol at point automatically
+      highlight-symbol-idle-delay 0.3)
 
 (global-set-key [(control shift mouse-1)]
 		(lambda (event)
@@ -160,7 +167,8 @@
 ;;| Company (autocomple everything)
 ;;`----------------------
 (require 'company)
-(setq company-idle-delay 0.1)
+(setq company-idle-delay 0.1
+      company-frontends '(company-pseudo-tooltip-frontend company-echo-metadata-frontend))
 (define-key company-active-map [return] 'newline)
 (define-key company-active-map [tab] 'company-complete-selection) ;; we actually need something smarter like tab once to complete common part, then tap another timee to complete selction
 
@@ -188,9 +196,9 @@
 ; M-g to goto line
 (global-set-key [(meta g)] 'goto-line)
 ; Start in scratch buffer, in org mode and with no message
-(setq inhibit-startup-screen t)
-(setq initial-major-mode 'org-mode)
-(setq initial-scratch-message nil)
+(setq inhibit-startup-screen t
+      initial-major-mode 'org-mode
+      initial-scratch-message nil)
 
 ;;,-------------
 ;;| Backup files
@@ -202,7 +210,8 @@
 ;;,------------------------
 ;;| Emmet Mode (Zen coding)
 ;;`------------------------
-; Activates in sgml and css modes
+(require 'emmet-mode)
+;; Activates in sgml and css modes
 (add-hook 'sgml-mode-hook 'emmet-mode)
 (add-hook 'css-mode-hook 'emmet-mode)
 (add-hook 'php-mode-hook 'emmet-mode)
@@ -224,13 +233,15 @@
   (indent-region (point-min) (point-max) nil)
   (untabify (point-min) (point-max)))
 
-;; Paredit
+;;,--------
+;;| Paredit
+;;`--------
 (require 'paredit)
 ;; Swap word movement and barfing/slurping commands bindings
 ;; Paredit is the only mode using Meta for movement so it
 ;; breaks my automatisms
 ;; Now beehave correctly paredit !
-;; I also swap barf/slurp because it makes visually much more
+;; I also swap barf/slurp because it makes much more
 ;; sense - visually- to me that way
 (define-key paredit-mode-map (kbd "M-<right>") 'paredit-forward-barf-sexp)
 (define-key paredit-mode-map (kbd "M-<left>") 'paredit-forward-slurp-sexp)
@@ -261,17 +272,7 @@
   (interactive)
   (mc/create-fake-cursor-at-point)
   (highlight-symbol-next)
-  (mc/maybe-multiple-cursors-mode)
-  )
-
-(defun fake-cursor-at-point ()
-  (let ((end (max (mark) (point)))
-	furthest)
-    (mc/for-each-fake-cursor
-     (when (>= (mc/cursor-beg cursor) end)
-       (setq end (mc/cursor-end cursor))
-       (setq furthest cursor)))
-    furthest))
+  (mc/maybe-multiple-cursors-mode))
 
 (defun skip-to-next-like-symbol-under-cursor ()
   (interactive)
@@ -292,8 +293,8 @@
 (define-key php-mode-map (kbd "M-s") 'php-insert-$this)
 
 (require 'php-boris)
-(setq php-boris-command "~/source/boris/bin/boris")
-(setq php-boris-prompt "\\[\\d+\\] >>>")
+(setq php-boris-command "~/source/boris/bin/boris"
+      php-boris-prompt "\\[\\d+\\] >>>")
 
 ;;,-------------------------------------------------
 ;;| Save open buffers and remember position in files
@@ -319,7 +320,6 @@
 (key-chord-define-global "kj" 'forward-word)
 (key-chord-define-global "à)" 'undo)
 (key-chord-define-global "0°" 'undo-tree-redo)
-(key-chord-define-global ")=" 'helm-imenu)
 (key-chord-define-global "ù*" 'org-capture)
 					; C-x o is not nice to type, trying to find a good key-binding
 (key-chord-define-global "$$" 'other-window)
@@ -366,8 +366,14 @@
 ;;`---------
 (require 'flycheck)
 (global-flycheck-mode)
-(eval-after-load 'flycheck
-  (lambda () (setq flycheck-display-errors-function 'flycheck-pos-tip-error-messages)))
+(setq-default flycheck-disabled-checkers '(emacs-lisp-checkdoc)
+	      flycheck-idle-change-delay 0.2
+	      flycheck-display-errors-delay 0.1
+	      flycheck-display-errors-function 'flycheck-display-error-messages-unless-error-list)
+
+;;,---------
+;;| Org mode
+;;`---------
 
 ;; Org mode for todos
 (require 'org-install)
@@ -378,15 +384,17 @@
      (define-prefix-command 'org-todo-state-map)
      
      (define-key org-mode-map "\C-cx" 'org-todo-state-map)
-     (setq org-use-fast-todo-selection t)
-     (setq org-todo-keywords
-	   '((sequence "TODO(t)"
-		       "STARTED(s)"
-		       "WAITING(w)"
-		       "DELEGATED(l)" "|"
-		       "DONE(d)"
-		       "DEFERRED(f)")))))
- 
+     (setq org-use-fast-todo-selection t
+	   org-deadline-warning-days 14
+	   org-reverse-note-order t
+	   org-fast-tag-selection-single-key 'expert
+	   org-todo-keywords '((sequence "TODO(t)"
+					 "STARTED(s)"
+					 "WAITING(w)"
+					 "DELEGATED(l)" "|"
+					 "DONE(d)"
+					 "DEFERRED(f)")))))
+
 (eval-after-load "org-agenda"
   '(progn
      (define-key org-agenda-mode-map "\C-n" 'next-line)
@@ -400,7 +408,12 @@
      (define-key org-agenda-mode-map (kbd "C-c C-c") 'org-agenda-todo-choose-status)
 
      (setq org-agenda-files '("~/org/tasks-main.org")
-           org-default-notes-file "~/org/notes.org")
+           org-default-notes-file "~/org/notes.org"
+	   org-agenda-ndays 7
+	   org-agenda-show-all-dates t
+	   org-agenda-skip-deadline-if-done t
+	   org-agenda-skip-scheduled-if-done t
+	   org-agenda-start-on-weekday nil)
   
      (setq org-agenda-custom-commands
     	'(("d" todo "DELEGATED" nil)
@@ -426,6 +439,16 @@
     		"
 ]+>")))
 	    (org-agenda-overriding-header "Unscheduled TODO entries: ")))))))
+
+(add-to-list 'org-mode-hook
+	     (lambda ()
+	       (org-babel-do-load-languages 'org-babel-load-languages
+					    '((emacs-lisp . t)
+					      (python . t)
+					      (php . t)
+					      (R . t)
+					      (sh . t)
+					      (ditaa . t)))))
 
 ;; Week view TODO
 ;; (global-set-key (kbd "<f7>") 'org-agenda-week-view)
@@ -466,7 +489,6 @@ It finds the first window where q is not bound to self-insert and type q"
 (global-set-key (kbd "<f12>") 'magit-status)
 
 ; And replacement functions
-(global-set-key (kbd "C-x b") 'helm-mini)
 (global-set-key (kbd "C-x C-b") 'ibuffer)
 
 ;;,-----------------------------
@@ -500,3 +522,58 @@ Operation depends on the mode :
   (interactive)
   (sbt-command "run"))
 (global-set-key (kbd "<f11>") 'sbt-run)
+
+(require 'scala-mode2)
+(add-to-list 'scala-mode-hook
+	     (lambda ()
+	       (require 'ensime)
+	       (setq ensime-ac-enable-argument-placeholders nil
+		     ensime-ac-override-settings t
+		     ensime-typecheck-idle-interval 0.3
+		     ensime-typecheck-interval 1)))
+
+;;,------------------
+;;| Visible Mark mode
+;;`------------------
+;; No transient mode, but I'd like to see
+(transient-mark-mode -1)
+(require 'visible-mark)
+(set-face-attribute 'visible-mark-active nil :background "dark green")
+(global-visible-mark-mode)
+
+;;,-----
+;;| Smex
+;;`-----
+;; Helm is great for a lot of inputs but finding what I want in M-x
+;; with it takes too long
+(require 'smex)
+(global-set-key (kbd "M-x") 'smex)
+
+;;,-------------------
+;;| Dired hide details
+;;`-------------------
+(require 'dired-details)
+(setq dired-details-initially-hide t) ; ?
+
+;;,---------------------------------
+;;| Visual regexp with modern syntax
+;;`---------------------------------
+(require 'visual-regexp-steroids)
+
+;;,----------------------
+;;| Smooth page scrolling
+;;`----------------------
+(require 'smooth-scrolling)
+(setq smooth-scroll-margin 3)
+
+;;,------
+;;| Latex
+;;`------
+(require 'tex-mode)
+(setq tex-start-commands "--shell-escape")
+
+;;,------
+;;| Magit
+;;`------
+(require 'magit)
+(setq magit-use-overlays nil)

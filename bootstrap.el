@@ -28,8 +28,9 @@
    clojure-mode cider clojure-cheatsheet clj-refactor cljsbuild-mode
    ;; Misc
    highlight-symbol multiple-cursors
-   rebox2 smooth-scroll hl-line
-   key-chord dired-details
+   rebox2 smooth-scrolling hl-line
+   key-chord dired-details visible-mark
+   visual-regexp-steroids
    ;; Org
    htmlize
    ;; Flycheck
