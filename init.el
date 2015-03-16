@@ -8,6 +8,9 @@
     `(add-hook 'after-init-hook (lambda ()
 				  ,@body))))
 
+;; Run GC every ~40Mo allocated
+(setq gc-cons-threshold 40000000) ; 800000 by default
+
 ;;,---------------
 ;;| Manage windows
 ;;`---------------
@@ -316,14 +319,15 @@
 ;;fast !
 (key-chord-mode t)
 (key-chord-define-global ",;" 'dired-jump)
-(key-chord-define-global "df" 'backward-word)
-(key-chord-define-global "kj" 'forward-word)
+;(key-chord-define-global "df" 'backward-word)
+;(key-chord-define-global "kj" 'forward-word)
 (key-chord-define-global "à)" 'undo)
 (key-chord-define-global "0°" 'undo-tree-redo)
 (key-chord-define-global "ù*" 'org-capture)
-					; C-x o is not nice to type, trying to find a good key-binding
+(key-chord-define-global "mç" 'org-capture)
+;; C-x o is not nice to type, trying to find a good key-binding
 (key-chord-define-global "$$" 'other-window)
-
+(key-chord-define-global "çç" 'other-window)
 
 ;;,---------
 ;;| Org mode
@@ -344,6 +348,10 @@
 
 (setq org-capture-templates
    '(("ù" "Task" entry
+      (file+headline "~/org/tasks-main.org" "Tasks")
+     "* TODO %?
+  %u")
+     ("m" "Task" entry
       (file+headline "~/org/tasks-main.org" "Tasks")
      "* TODO %?
   %u")
@@ -370,6 +378,8 @@
 	      flycheck-idle-change-delay 0.2
 	      flycheck-display-errors-delay 0.1
 	      flycheck-display-errors-function 'flycheck-display-error-messages-unless-error-list)
+(require 'flycheck-tip)
+(flycheck-tip-use-timer 'verbose)
 
 ;;,---------
 ;;| Org mode
@@ -448,7 +458,9 @@
 					      (php . t)
 					      (R . t)
 					      (sh . t)
-					      (ditaa . t)))))
+					      (ditaa . t)))
+	       (visual-line-mode 1)
+	       (toggle-word-wrap 1)))
 
 ;; Week view TODO
 ;; (global-set-key (kbd "<f7>") 'org-agenda-week-view)
@@ -577,3 +589,90 @@ Operation depends on the mode :
 ;;`------
 (require 'magit)
 (setq magit-use-overlays nil)
+
+;;,----------------
+;;| Smart mode line
+;;`----------------
+(column-number-mode)
+(require 'smart-mode-line)
+(sml/setup)
+
+;;,-----------------
+;;| Dash integration
+;;`-----------------
+(require 'helm-dash)
+(defun ft/dash-install ()
+  (loop for doc in '("Android" "AngularJS" "C" "Clojure" "CodeIgniter" "CSS" "Java_SE7" "jQuery" "MySQL" "PHP" "PHPUnit" "Scala" "SQLite")
+	do (helm-dash-install-docset doc)))
+
+(defmacro ft/mode-set-dash-docsets (mode-hook &rest sets)
+  `(add-hook (quote ,mode-hook) (lambda ()
+				  (setq-local helm-dash-docsets (quote ,sets)))))
+
+(add-hook 'php-mode-hook (lambda ()
+			   (setq-local helm-dash-docsets '("PHP" "PHPUnit"))))
+(ft/mode-set-dash-docsets js-mode-hook "AngularJS" "jQuery")
+(ft/mode-set-dash-docsets clojure-mode-hook "Clojure" "Java_SE7")
+(ft/mode-set-dash-docsets php-mode-hook "PHP" "PHPUnit" "CodeIgniter")
+(ft/mode-set-dash-docsets scala-mode-hook "Scala" "Android")
+(setq helm-dash-common-docsets '())
+
+;;,--------------------------
+;;| Maximize frame on startup
+;;`--------------------------
+(defun ft/maximize-frame (frame)
+  (unless (eq (frame-parameter frame 'fullscreen) 'maximized)
+    (toggle-frame-maximized)))
+
+(ft/maximize-frame nil) ; current frame
+
+;;,-------
+;;| Comint
+;;`-------
+(add-hook 'comint-mode-hook (lambda ()
+			      (setq-local undo-limit 1000)))
+
+;;,---------
+;;| God Mode
+;;`---------
+(require 'god-mode)
+
+;; Enter/leave god-mode on jk chord
+(key-chord-define-global "jk" 'god-mode-all)
+(key-chord-define-global "'." 'god-mode-all)
+(define-key god-local-mode-map (kbd "i") 'god-mode-all)
+(define-key god-local-mode-map (kbd ".") 'delete-backward-char) ; fail
+					; in paredit !
+(global-set-key (kbd "M-t") 'god-mode-all)
+
+; change cursor according to god-mode state
+(defun ft/god-mode-update-cursor ()
+  (setq cursor-type (if (or god-local-mode buffer-read-only)
+                        'box
+                      'bar)))
+
+(add-hook 'god-mode-enabled-hook (lambda ()
+				   (company-cancel)
+				   (relative-line-numbers-mode)
+				   (ft/god-mode-update-cursor)))
+(add-hook 'god-mode-disabled-hook (lambda ()
+				    (relative-line-numbers-mode 0)
+				    (ft/god-mode-update-cursor))))
+(later 'god-mode-all)
+
+;;,------------
+;;| Common Lisp
+;;`------------
+(setq inferior-lisp-program "/usr/bin/clisp")
+(require 'slime)
+(slime-setup '(slime-fancy))
+
+(add-hook 'slime-repl-mode-hook 'enable-paredit-mode)
+
+;; Stop SLIME's REPL from grabbing DEL,
+;; which is annoying when backspacing over a '('
+(defun override-slime-repl-bindings-with-paredit ()
+  (define-key slime-repl-mode-map
+    (read-kbd-macro paredit-backward-delete-key)
+    nil))
+(add-hook 'slime-repl-mode-hook 'override-slime-repl-bindings-with-paredit)
