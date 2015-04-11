@@ -11,30 +11,33 @@
 
 
 ;; And download all the packages !
-(package-download-transaction
+(defvar ft/needed-packages
  '(
    ;; Essential
-   company-mode projectile undo-tree
-   ;; Helm
-   helm helm-projectile helm-ack
+   company-mode projectile undo-tree god-mode
+   ;; Flycheck
+   flycheck flycheck-tip
    ;; Web
    php-mode emmet-mode web-mode rainbow-mode
-   php-boris php-eldoc
+   php-boris php-eldoc js2-mode json-mode restclient
    ;; Lisp
    paredit rainbow-delimiters
    ;; Python
-   anaconda-mode
+   anaconda-mode company-anaconda ein
    ;; Clojure
-   clojure-mode cider clojure-cheatsheet clj-refactor cljsbuild-mode
+   clojure-mode cider clojure-cheatsheet clj-refactor cljsbuild-mode flycheck-clojure
    ;; Misc
    highlight-symbol multiple-cursors
    rebox2 smooth-scrolling hl-line
-   key-chord dired-details visible-mark
-   visual-regexp-steroids
+   key-chord visible-mark ace-jump-mode
+   visual-regexp-steroids ag
+   relative-line-numbers smart-mode-line
+   ;; ido
+   smex ido-ubiquitous flx-ido
+   ;; Dired
+   dired-subtree dired-details
    ;; Org
    htmlize
-   ;; Flycheck
-   flycheck flycheck-pyflakes
    ;; VC
    magit
    ;; Theme
@@ -44,5 +47,22 @@
    ;; Android
    android-mode
    ;; Scala
-   sbt scala-mode2
+   sbt scala-mode2 ensime
+   ;; Common Lisp
+   slime slime-company
+   ;; Haskell
+   haskell-mode flycheck-haskell
    ))
+
+(defun install-packages (packages)
+  (unless package--initialized
+    (package-initialize t))
+  (unless package-archive-contents
+    (package-refresh-contents))
+  (package-download-transaction (package-compute-transaction
+				 () (delq nil (mapcar (lambda (elt)
+							(when (member (car elt) packages)
+							  (cadr elt)))
+						      package-archive-contents)))))
+
+(install-packages ft/needed-packages)

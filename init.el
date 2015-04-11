@@ -78,52 +78,41 @@
 
 (projectile-global-mode)
 
+;;,--------------------
+;;| The silver searcher
+;;`--------------------
+(require 'ag)
+(setq ag-highlight-search t)
+
 ;;,------------
 ;;| CSS editing
 ;;`------------
 ; rainbow mode sets backgroudn color based on detected color code
 (add-hook 'css-mode-hook 'rainbow-mode)
 
-;;,-----
-;;| Helm
-;;`-----
+;;,----
+;;| IDO
+;;`----
+(require 'ido)
 
-(require 'helm)
+(setq ido-enable-prefix nil
+      ido-enable-flex-matching t
+      ido-create-new-buffer 'always
+      confirm-nonexistent-file-or-buffer nil
+      ido-use-filename-at-point 'guess
+      ido-max-prospects 10
+      ido-default-file-method 'selected-window
+      ido-auto-merge-work-directories-length -1)
 
-;; must set before helm-config,  otherwise helm use default
-;; prefix "C-x c", which is inconvenient because you can
-;; accidentially pressed "C-x C-c"
-(setq helm-command-prefix-key "C-c h")
+;;; smarter fuzzy matching for ido
+(flx-ido-mode +1)
+;; disable ido faces to see flx highlights
+(setq ido-use-faces nil)
 
-(require 'helm-adaptive)
-(require 'helm-config)
-(require 'helm-eshell)
-(require 'helm-files)
-(require 'helm-grep)
-(global-set-key (kbd "C-x b") 'helm-mini)
-(define-key helm-map (kbd "<tab>") 'helm-execute-persistent-action)
-(define-key helm-map (kbd "C-z") 'helm-execute-selection-action)
+(ido-vertical-mode t)
 
-(define-key helm-map (kbd "C-x b") 'helm-mini)
-
-(require 'helm-projectile)
-(global-set-key (kbd "C-x h") 'helm-projectile)
-
-(require 'helm-imenu)
-(key-chord-define-global ")=" 'helm-imenu)
-
-(global-set-key (kbd "C-x b") 'helm-mini)
-
-(setq helm-mp-matching-method 'multi3)
-
-;; Make helm-do-grep easier to invoke
-(defun my-do-grep ()
-  "Run helm-do-grep recursiverly in current dir"
-  (interactive)
-  (helm-do-grep-1 (list (file-name-directory (buffer-file-name))) t nil '("*")))
-(global-set-key (kbd "<C-f2>") 'my-do-grep)
-
-(helm-mode t)
+(ido-mode +1)
+(ido-ubiquitous-mode +1)
 
 ;;,--------------------------
 ;;| Highlight symbol at point
@@ -171,20 +160,33 @@
 ;;`----------------------
 (require 'company)
 (setq company-idle-delay 0.1
-      company-frontends '(company-pseudo-tooltip-frontend company-echo-metadata-frontend))
-(define-key company-active-map [return] 'newline)
+      company-frontends '(company-pseudo-tooltip-frontend company-echo-metadata-frontend)
+      company-minimum-prefix-length 1
+      company-backends '(company-bbdb company-nxml company-css company-eclim company-semantic company-clang company-xcode company-ropemacs company-cmake company-capf
+				      (company-dabbrev-code company-gtags company-etags company-keywords)
+				      company-oddmuse company-files company-ispell
+				      (company-ispell company-dabbrev)))
+(define-key company-active-map [return] 'newline) ;; I don't want
+;; company to get in my way
 (define-key company-active-map [tab] 'company-complete-selection) ;; we actually need something smarter like tab once to complete common part, then tap another timee to complete selction
-
-;(define-key ac-completing-map "\t" 'ac-complete) ; tab to complete
-;(define-key ac-completing-map [return] nil) ; not enter
-;(define-key ac-completing-map "\r" nil)
+(global-company-mode)
 
 ;;,---------
 ;;| Web mode
 ;;`---------
 (require 'web-mode)
 (add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
-;
+
+;;,---------
+;;| JS2 mode
+;;`---------
+(require 'js2-mode)
+
+;; Set as default for JS file
+(add-to-list 'auto-mode-alist '("\\.js\\'" . js2-mode))
+
+(setq js2-strict-trailing-comma-warning nil)
+
 
 ;;,-----------------------------------
 ;;| Jinja 2 mode with custom functions
@@ -347,27 +349,31 @@
 (add-to-list 'org-latex-packages-alist '("" "minted"))
 
 (setq org-capture-templates
-   '(("ù" "Task" entry
+   `(("t" "Task" entry
       (file+headline "~/org/tasks-main.org" "Tasks")
-     "* TODO %?
+      "* TODO %?
   %u")
-     ("m" "Task" entry
-      (file+headline "~/org/tasks-main.org" "Tasks")
-     "* TODO %?
-  %u")
-     ("*" "Note" entry
+     ("n" "Note" entry
       (file "~/org/notes.org")
-     "* %U %?
-%(let ((file (org-capture-get :original-file)))
-   (if (> (length file) 0)
-     (string-join (list \"From \" file))))
-%(let ((content (plist-get org-store-link-plist :initial)))
-    (if (> (length content) 0)
-      (string-join
-        (list
-          \"  #+begin_src \" (first (split-string (with-current-buffer (org-capture-get :buffer) (symbol-name major-mode)) \"-\"))
-          \"\\n\" content
-          \"\\n  #+end_src\"))))" :prepend t)))
+      ,(let ((add-origin-file '(let ((file (org-capture-get :original-file)))
+				 (if (> (length file) 0)
+				     (string-join (list "From " "[[" file "]]")))))
+	     (add-content '(let ((content (plist-get org-store-link-plist :initial)))
+			     (if (> (length content) 0)
+				 (string-join
+				  (list "  #+begin_src "
+					(first (split-string
+						(with-current-buffer (org-capture-get :buffer)
+						  (symbol-name major-mode))
+						"-"))
+				   "\n" content
+				   "\n  #+end_src"))))))
+	 ;; build the template string for org-mode
+	 (mapconcat 'identity (list "* %U %?\n"
+			    "%" (prin1-to-string add-origin-file) "\n"
+			    "%" (prin1-to-string add-content))
+		    ""))
+      :prepend t)))
 
 ;;,---------
 ;;| Flycheck
@@ -389,12 +395,15 @@
 (require 'org-install)
 (define-key mode-specific-map [?a] 'org-agenda)
 
+(add-to-list 'org-modules 'habits)
+
 (eval-after-load "org"
   '(progn
      (define-prefix-command 'org-todo-state-map)
      
      (define-key org-mode-map "\C-cx" 'org-todo-state-map)
      (setq org-use-fast-todo-selection t
+	   org-completion-use-ido t
 	   org-deadline-warning-days 14
 	   org-reverse-note-order t
 	   org-fast-tag-selection-single-key 'expert
@@ -462,15 +471,16 @@
 	       (visual-line-mode 1)
 	       (toggle-word-wrap 1)))
 
+(setq org-ditaa-jar-path "/usr/share/java/ditaa/ditaa-0_9.jar")
+
 ;; Week view TODO
 ;; (global-set-key (kbd "<f7>") 'org-agenda-week-view)
-;; Unclassified tasks view
-;; (global-set-key (kbd "<f8>") 'org-agenda)
+(global-set-key (kbd "<f8>") 'org-agenda)
 
 ;;,------------------------------
 ;;| Tech blog config for org-mode
 ;;`------------------------------
-(load (concat (file-name-directory load-file-name) "org-blog"))
+(require 'org-blog)
 (define-key org-mode-map (kbd "C-c b") 'extract-bog-post)
 
 ;;,------------------------------
@@ -559,13 +569,30 @@ Operation depends on the mode :
 ;; Helm is great for a lot of inputs but finding what I want in M-x
 ;; with it takes too long
 (require 'smex)
+(smex-initialize)
 (global-set-key (kbd "M-x") 'smex)
+(global-set-key (kbd "M-X") 'smex-major-mode-commands)
 
 ;;,-------------------
 ;;| Dired hide details
 ;;`-------------------
 (require 'dired-details)
-(setq dired-details-initially-hide t) ; ?
+(setq dired-details-initially-hide t
+      dired-details-hide-extra-lines t)
+
+;;,--------------
+;;| Dired subtree
+;;`--------------
+(require 'dired-subtree)
+
+(defun ft/dired-subtree-cycle ()
+  "Insert subtree (and move to first file) if not expanded, remove if expanded"
+  (interactive)
+  (if (dired-subtree--is-expanded-p)
+      (progn (dired-next-line 1)
+	     (dired-subtree-remove))
+    (dired-subtree-insert)))
+(define-key dired-mode-map (kbd "i") 'ft/dired-subtree-cycle)
 
 ;;,---------------------------------
 ;;| Visual regexp with modern syntax
@@ -588,7 +615,24 @@ Operation depends on the mode :
 ;;| Magit
 ;;`------
 (require 'magit)
-(setq magit-use-overlays nil)
+(setq magit-use-overlays nil
+      magit-completing-read-function 'magit-ido-completing-read)
+
+;; from http://endlessparentheses.com/automatically-configure-magit-to-access-github-prs.html
+(defun endless/add-PR-fetch ()
+  "If refs/pull is not defined on a GH repo, define it."
+  (let ((fetch-address
+         "+refs/pull/*/head:refs/pull/origin/*"))
+    (unless (member
+             fetch-address
+             (magit-get-all "remote" "origin" "fetch"))
+      (when (string-match
+             "github" (magit-get "remote" "origin" "url"))
+        (magit-git-string
+         "config" "--add" "remote.origin.fetch"
+         fetch-address)))))
+
+(add-hook 'magit-mode-hook #'endless/add-PR-fetch)
 
 ;;,----------------
 ;;| Smart mode line
@@ -600,22 +644,22 @@ Operation depends on the mode :
 ;;,-----------------
 ;;| Dash integration
 ;;`-----------------
-(require 'helm-dash)
-(defun ft/dash-install ()
-  (loop for doc in '("Android" "AngularJS" "C" "Clojure" "CodeIgniter" "CSS" "Java_SE7" "jQuery" "MySQL" "PHP" "PHPUnit" "Scala" "SQLite")
-	do (helm-dash-install-docset doc)))
-
-(defmacro ft/mode-set-dash-docsets (mode-hook &rest sets)
-  `(add-hook (quote ,mode-hook) (lambda ()
-				  (setq-local helm-dash-docsets (quote ,sets)))))
-
-(add-hook 'php-mode-hook (lambda ()
-			   (setq-local helm-dash-docsets '("PHP" "PHPUnit"))))
-(ft/mode-set-dash-docsets js-mode-hook "AngularJS" "jQuery")
-(ft/mode-set-dash-docsets clojure-mode-hook "Clojure" "Java_SE7")
-(ft/mode-set-dash-docsets php-mode-hook "PHP" "PHPUnit" "CodeIgniter")
-(ft/mode-set-dash-docsets scala-mode-hook "Scala" "Android")
-(setq helm-dash-common-docsets '())
+;;(require 'helm-dash)
+;;(defun ft/dash-install ()
+;;  (loop for doc in '("Android" "AngularJS" "C" "Clojure" "CodeIgniter" "CSS" "Java_SE7" "jQuery" "MySQL" "PHP" "PHPUnit" "Scala" "SQLite")
+;;	do (helm-dash-install-docset doc)))
+;;
+;;(defmacro ft/mode-set-dash-docsets (mode-hook &rest sets)
+;;  `(add-hook (quote ,mode-hook) (lambda ()
+;;				  (setq-local helm-dash-docsets (quote ,sets)))))
+;;
+;;(add-hook 'php-mode-hook (lambda ()
+;;			   (setq-local helm-dash-docsets '("PHP" "PHPUnit"))))
+;;(ft/mode-set-dash-docsets js-mode-hook "AngularJS" "jQuery")
+;;(ft/mode-set-dash-docsets clojure-mode-hook "Clojure" "Java_SE7")
+;;(ft/mode-set-dash-docsets php-mode-hook "PHP" "PHPUnit" "CodeIgniter")
+;;(ft/mode-set-dash-docsets scala-mode-hook "Scala" "Android")
+;;(setq helm-dash-common-docsets '())
 
 ;;,--------------------------
 ;;| Maximize frame on startup
@@ -631,6 +675,13 @@ Operation depends on the mode :
 ;;`-------
 (add-hook 'comint-mode-hook (lambda ()
 			      (setq-local undo-limit 1000)))
+
+;;,----------------------
+;;| Relative line numbers
+;;`----------------------
+(require 'relative-line-numbers)
+(setq relative-line-numbers-current-line-symbol ">"
+      relative-line-numbers-motion-function 'forward-visible-line)
 
 ;;,---------
 ;;| God Mode
@@ -651,13 +702,26 @@ Operation depends on the mode :
                         'box
                       'bar)))
 
+(setq god-exempt-major-modes nil)
+(setq god-exempt-predicates nil)
 (add-hook 'god-mode-enabled-hook (lambda ()
 				   (company-cancel)
 				   (relative-line-numbers-mode)
 				   (ft/god-mode-update-cursor)))
 (add-hook 'god-mode-disabled-hook (lambda ()
 				    (relative-line-numbers-mode 0)
-				    (ft/god-mode-update-cursor))))
+				    (ft/god-mode-update-cursor)))
+
+(define-key god-local-mode-map (kbd ".") 'repeat)
+
+(defun ft/god-mode-self-insert ()
+  (interactive)
+  (if (and (bolp)
+           (eq major-mode 'org-mode))
+      (call-interactively 'org-self-insert-command)
+    (call-interactively 'god-mode-self-insert)))
+(define-key god-local-mode-map [remap self-insert-command] 'ft/god-mode-self-insert)
+
 (later 'god-mode-all)
 
 ;;,------------
@@ -665,8 +729,13 @@ Operation depends on the mode :
 ;;`------------
 (setq inferior-lisp-program "/usr/bin/clisp")
 (require 'slime)
-(slime-setup '(slime-fancy))
+(slime-setup '(slime-fancy
+	       slime-company))
 
+(add-to-list 'auto-mode-alist '("\\.cl\\'" . common-lisp-mode))
+(add-hook 'lisp-mode-hook (lambda () 
+			    (eldoc-mode 1)
+			    (paredit-mode)))
 (add-hook 'slime-repl-mode-hook 'enable-paredit-mode)
 
 ;; Stop SLIME's REPL from grabbing DEL,
@@ -676,3 +745,44 @@ Operation depends on the mode :
     (read-kbd-macro paredit-backward-delete-key)
     nil))
 (add-hook 'slime-repl-mode-hook 'override-slime-repl-bindings-with-paredit)
+
+;;,--------------------------
+;;| Keymap for bépo keyboards
+;;`--------------------------
+(require 'bepo_map)
+
+;; from https://tsdh.wordpress.com/2015/03/03/swapping-emacs-windows-using-dragndrop/
+(defun th/swap-window-buffers-by-dnd (drag-event)
+  "Swaps the buffers displayed in the DRAG-EVENT's start and end
+window."
+  (interactive "e")
+  (let ((start-win (cl-caadr drag-event))
+        (end-win   (cl-caaddr drag-event)))
+    (when (and (windowp start-win)
+               (windowp end-win)
+               (not (eq start-win end-win))
+               (not (memq (minibuffer-window)
+                          (list start-win end-win))))
+      (let ((bs (window-buffer start-win))
+            (be (window-buffer end-win)))
+        (unless (eq bs be)
+          (set-window-buffer start-win be)
+          (set-window-buffer end-win bs))))))
+(global-set-key (kbd "<C-S-drag-mouse-1>") #'th/swap-window-buffers-by-dnd)
+
+;;,-----
+;;| Rust
+;;`-----
+;;(require 'rust-mode)
+;;(add-to-list 'rust-mode-hook (lambda ()
+;;			       (require 'racer)
+;;			       (setq racer-rust-src-path "~/sources/rust/src/")
+;;			       (setq racer-cmd "~/source/racer/target/release/racer")))
+
+;;,-----
+;;| Misc
+;;`-----
+(setq doc-view-continuous t
+      visual-line-fringe-indicators '(left-curly-arrow nil))
+
+(provide 'init)

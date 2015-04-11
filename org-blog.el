@@ -27,7 +27,8 @@
 	 :html-preamble "<a href=\"index.html\">Home</a>"
 	 :style-include-default nil  ;Disable the default css style
 	 :auto-postamble nil         ; Disable auto postamble
-	 :html-postamble "<p class=\"postamble\">Florent Thévenet<br/>Last Updated %d.</p>"
+	 :html-postamble "<p class=\"postamble\">Florent Thévenet<br/>Last Updated %d.<br/>
+<a rel=\"license\" href=\"http://creativecommons.org/licenses/by-sa/4.0/\"><img alt=\"Creative Commons License\" style=\"border-width:0\" src=\"https://i.creativecommons.org/l/by-sa/4.0/80x15.png\" /></a> This <span xmlns:dct=\"http://purl.org/dc/terms/\" href=\"http://purl.org/dc/dcmitype/Text\" rel=\"dct:type\">work</span> is licensed under a <a rel=\"license\" href=\"http://creativecommons.org/licenses/by-sa/4.0/\">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>"
 	 :auto-sitemap t
 	 :sitemap-filename "index.org"
 	 :sitemap-title "<Insert smart name here>"
@@ -104,7 +105,6 @@ Copied from org-publish-org-sitemap"
   (save-excursion
     (goto-char (point-min))
     (search-forward "\n* ")
-    (forward-line)
     (set-mark (point))
     (search-backward "#+")
     (forward-line)
@@ -174,7 +174,7 @@ Copied from org-publish-org-sitemap"
     (or (re-search-forward "^* " nil t) (point-max))))
 
 (add-to-list 'org-capture-templates
-	     `("t" "Tech Blog post" entry
+	     `("b" "Tech Blog post" entry
 	       (file ,(concat tech-blog-path "drafts.org"))
      "* New draft
 #+DATE: %(format-time-string \"[%F]\")
