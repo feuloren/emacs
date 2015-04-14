@@ -1,13 +1,3 @@
-;; Teh One Macro To Rule Them All
-;; Actually it's useless, I had to use it because I forgot to call (package-initialize)
-;; But we'll keep it here for History
-(defmacro later (&rest body)
-  "Runs after init when load-path are set packages are loaded"
-  (if  (and (eq (length body) 1) (eq (caar body) 'quote))
-      `(add-hook 'after-init-hook ,(car body))
-    `(add-hook 'after-init-hook (lambda ()
-				  ,@body))))
-
 ;; Run GC every ~40Mo allocated
 (setq gc-cons-threshold 40000000) ; 800000 by default
 
@@ -313,24 +303,6 @@
 
 (delete-selection-mode 1)
 
-;;,---------------
-;;| Key chord mode
-;;`---------------
-(require 'key-chord)
-;;(setq key-chord-two-keys-delay 0.05) ; got to type it real
-;;fast !
-(key-chord-mode t)
-(key-chord-define-global ",;" 'dired-jump)
-;(key-chord-define-global "df" 'backward-word)
-;(key-chord-define-global "kj" 'forward-word)
-(key-chord-define-global "à)" 'undo)
-(key-chord-define-global "0°" 'undo-tree-redo)
-(key-chord-define-global "ù*" 'org-capture)
-(key-chord-define-global "mç" 'org-capture)
-;; C-x o is not nice to type, trying to find a good key-binding
-(key-chord-define-global "$$" 'other-window)
-(key-chord-define-global "çç" 'other-window)
-
 ;;,---------
 ;;| Org mode
 ;;`---------
@@ -339,7 +311,9 @@
 (define-key org-src-mode-map (kbd "C-c *") 'org-edit-src-exit)
 (define-key org-src-mode-map (kbd "C-c l") 'org-store-link)
 (setq org-src-fontify-natively t)
+
 (require 'htmlize)
+(require 'ox-html)
 (setq org-html-htmlize-output-type 'css)
 
 (require 'ob-php)
@@ -503,8 +477,6 @@ It finds the first window where q is not bound to self-insert and type q"
 	  (call-interactively (key-binding "q")))
       (message "No suitable window found for q-other-window"))))
 
-(key-chord-define-global "qq" 'q-other-window)
-
 ; More convienent key bindings for commands used all the time
 (global-set-key (kbd "M-o") 'other-window)
 (global-set-key (kbd "C-x C-k") 'kill-this-buffer)
@@ -528,11 +500,20 @@ Operation depends on the mode :
   (let ((sym (symbol-at-point)))
     (case major-mode
       ('clojure-mode (message "Not yet, sorry"))
+      ('python-mode (call-interactively 'anaconda-mode-view-doc)
+		    ;; I want the focus to stay in the calling window
+		    (other-window -1))
       (t
        (if (or (functionp sym) (macrop sym) (special-form-p sym))
 	   (describe-function sym)
-	 (message (concat (symbol-name sym) " not a function, use C-u to search for sexp head"))))))
-  )
+	 (message (concat (symbol-name sym) " not a function, use C-u to search for sexp head")))))))
+
+(require 'find-func)
+(defun ft/go-to-definition ()
+  (interactive)
+  (cond
+   ((eq major-mode 'emacs-lisp-mode) (find-function-do-it (function-called-at-point) nil 'switch-to-buffer))
+   ((bound-and-true-p anaconda-mode) (anaconda-mode-goto-definitions)))) ; TODO extend for vars, face and other modes
 
 (global-set-key (kbd "<C-f1>") 'help-around-cursor)
 
@@ -616,7 +597,9 @@ Operation depends on the mode :
 ;;`------
 (require 'magit)
 (setq magit-use-overlays nil
-      magit-completing-read-function 'magit-ido-completing-read)
+      magit-completing-read-function 'magit-ido-completing-read
+      magit-auto-revert-mode nil
+      magit-last-seen-setup-instructions "1.4.0")
 
 ;; from http://endlessparentheses.com/automatically-configure-magit-to-access-github-prs.html
 (defun endless/add-PR-fetch ()
@@ -688,12 +671,8 @@ Operation depends on the mode :
 ;;`---------
 (require 'god-mode)
 
-;; Enter/leave god-mode on jk chord
-(key-chord-define-global "jk" 'god-mode-all)
-(key-chord-define-global "'." 'god-mode-all)
-(define-key god-local-mode-map (kbd "i") 'god-mode-all)
-(define-key god-local-mode-map (kbd ".") 'delete-backward-char) ; fail
-					; in paredit !
+;; M-t is really easy to press on a bépo keyboard
+;; Alt with left thumb, t with right index
 (global-set-key (kbd "M-t") 'god-mode-all)
 
 ; change cursor according to god-mode state
@@ -714,15 +693,23 @@ Operation depends on the mode :
 
 (define-key god-local-mode-map (kbd ".") 'repeat)
 
-(defun ft/god-mode-self-insert ()
+(defun ft/god-mode-self-insert-for-org ()
   (interactive)
   (if (and (bolp)
            (eq major-mode 'org-mode))
       (call-interactively 'org-self-insert-command)
     (call-interactively 'god-mode-self-insert)))
-(define-key god-local-mode-map [remap self-insert-command] 'ft/god-mode-self-insert)
+(define-key god-local-mode-map [remap self-insert-command] #'ft/god-mode-self-insert-for-org)
 
-(later 'god-mode-all)
+(defadvice q-other-window (around q-other-window-god-mode activate)
+  (if (bound-and-true-p god-global-mode)
+      (progn
+	(god-mode-all)
+	ad-do-it
+	(god-mode-all))
+    ad-do-it))
+
+(add-hook 'after-init-hook #'god-mode-all)
 
 ;;,------------
 ;;| Common Lisp

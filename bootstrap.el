@@ -19,7 +19,7 @@
    flycheck flycheck-tip
    ;; Web
    php-mode emmet-mode web-mode rainbow-mode
-   php-boris php-eldoc js2-mode json-mode restclient
+   php-boris php-eldoc js2-mode json-mode
    ;; Lisp
    paredit rainbow-delimiters
    ;; Python
@@ -29,7 +29,7 @@
    ;; Misc
    highlight-symbol multiple-cursors
    rebox2 smooth-scrolling hl-line
-   key-chord visible-mark ace-jump-mode
+   visible-mark ace-jump-mode
    visual-regexp-steroids ag
    relative-line-numbers smart-mode-line
    ;; ido
@@ -52,6 +52,8 @@
    slime slime-company
    ;; Haskell
    haskell-mode flycheck-haskell
+   ;; Literate http requests
+   restclient company-restclient
    ))
 
 (defun install-packages (packages)
