@@ -505,18 +505,27 @@ Operation depends on the mode :
 		    ;; I want the focus to stay in the calling window
 		    (other-window -1))
       (t
-       (if (or (functionp sym) (macrop sym) (special-form-p sym))
-	   (describe-function sym)
-	 (message (concat (symbol-name sym) " not a function, use C-u to search for sexp head")))))))
+       (cond ((or (functionp sym) (macrop sym) (special-form-p sym))
+	      (describe-function sym))
+	     ((boundp sym) (describe-variable sym))
+	     (t (message (concat (symbol-name sym) " not a known symbol, use C-u to search for sexp head"))))))))
+
+(global-set-key (kbd "<C-f1>") 'help-around-cursor)
 
 (require 'find-func)
 (defun ft/go-to-definition ()
   (interactive)
   (cond
    ((eq major-mode 'emacs-lisp-mode) (find-function-do-it (function-called-at-point) nil 'switch-to-buffer))
-   ((bound-and-true-p anaconda-mode) (anaconda-mode-goto-definitions)))) ; TODO extend for vars, face and other modes
+   ((bound-and-true-p anaconda-mode) (call-interactively 'anaconda-mode-goto-definitions))
+   ((bound-and-true-p semantic-mode) (call-interactively 'semantic-ia-fast-jump)))) ; TODO extend for vars, face and other modes
 
-(global-set-key (kbd "<C-f1>") 'help-around-cursor)
+(defun ft/go-to-forward-mouse (nk-event)
+  "Control-click to go to definition like in IntelliJ"
+  (interactive "@e")
+  (posn-set-point (event-end  nk-event))
+  (call-interactively 'ft/go-to-definition))
+(global-set-key (kbd "C-<mouse-1>") #'ft/go-to-forward-mouse)
 
 ;;,------
 ;;| Scala
