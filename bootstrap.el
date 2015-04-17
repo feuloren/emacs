@@ -8,7 +8,8 @@
 
 
 ;; Then enable the proxy if needed
-
+(require 'url)
+(setq url-proxy-services '(("http" . "http://proxyweb.utc.fr:3128/")))
 
 ;; And download all the packages !
 (defvar ft/needed-packages
