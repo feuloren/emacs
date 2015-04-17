@@ -43,16 +43,6 @@
 (require 'undo-tree)
 (global-undo-tree-mode)
 
-;;,----------
-;;| Yasnippet
-;;`----------
-;; Still not convinced
-;; (later (require 'yasnippet)
-;;        (define-key yas-minor-mode-map [tab] nil) ; Don't disturb my
-;;                                      ; tab key yas !
-;;        (define-key yas-minor-mode-map (kbd "C-;") 'yas-expand)
-;;        (yas-global-mode 1))
-
 ;;,--------------------------
 ;;| Company + Jedi for python
 ;;`--------------------------
@@ -161,6 +151,23 @@
 ;; company to get in my way
 (define-key company-active-map [tab] 'company-complete-selection) ;; we actually need something smarter like tab once to complete common part, then tap another timee to complete selction
 (global-company-mode)
+
+;;,-----------
+;;| Yasnippets
+;;`-----------
+(require 'yasnippet)
+
+;; When the company popup is on I want tab to complete the selection
+;; not go to the next field
+(defadvice yas-next-field-or-maybe-expand (around yas-after-company-advice activate compile)
+  (if (null company-point)
+      ad-do-it
+    (call-interactively 'company-complete-selection)))
+
+(yas-global-mode 1)
+
+;; tab is for indent, I use yas-insert-snippet to select a snippet and expand it
+(define-key yas-minor-mode-map [tab] nil)
 
 ;;,---------
 ;;| Web mode

@@ -55,6 +55,8 @@
    haskell-mode flycheck-haskell
    ;; Literate http requests
    restclient company-restclient
+   ;; Yasnippets
+   yasnippet
    ))
 
 (defun install-packages (packages)
