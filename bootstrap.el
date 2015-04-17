@@ -34,7 +34,7 @@
    visual-regexp-steroids ag
    relative-line-numbers smart-mode-line
    ;; ido
-   smex ido-ubiquitous flx-ido
+   smex ido-ubiquitous flx-ido ido-vertical-mode
    ;; Dired
    dired-subtree dired-details
    ;; Org
@@ -65,7 +65,7 @@
   (package-download-transaction (package-compute-transaction
 				 () (delq nil (mapcar (lambda (elt)
 							(when (member (car elt) packages)
-							  (cadr elt)))
+							  (list (car elt) (package-desc-version (cadr elt)))))
 						      package-archive-contents)))))
 
 (install-packages ft/needed-packages)
