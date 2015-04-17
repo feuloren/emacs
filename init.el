@@ -71,6 +71,7 @@
 ;;,--------------------
 ;;| The silver searcher
 ;;`--------------------
+;; Download windows executable here http://blog.kowalczyk.info/software/the-silver-searcher-for-windows.html
 (require 'ag)
 (setq ag-highlight-search t)
 
