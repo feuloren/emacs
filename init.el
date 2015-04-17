@@ -46,7 +46,6 @@
 ;;,--------------------------
 ;;| Company + Jedi for python
 ;;`--------------------------
-(global-company-mode)
 (add-hook 'python-mode-hook (lambda ()
 			      (anaconda-mode)
 			      (eldoc-mode)
@@ -136,14 +135,19 @@
 				  (rebox-mode t)
 				  (eldoc-mode 1)
 				  (paredit-mode)))
+
 ;;,----------------------
 ;;| Company (autocomple everything)
 ;;`----------------------
 (require 'company)
+(require 'company-dabbrev)
+
 (setq company-idle-delay 0.1
       company-frontends '(company-pseudo-tooltip-frontend company-echo-metadata-frontend)
       company-minimum-prefix-length 1
-      company-backends '(company-bbdb company-nxml company-css company-eclim company-semantic company-clang company-xcode company-ropemacs company-cmake company-capf
+      company-dabbrev-downcase nil
+      company-dabbrev-ignore-case t
+      company-backends '(company-bbdb company-nxml company-css company-irony company-cmake company-capf
 				      (company-dabbrev-code company-gtags company-etags company-keywords)
 				      company-oddmuse company-files company-ispell
 				      (company-ispell company-dabbrev)))
@@ -447,7 +451,7 @@
 					    '((emacs-lisp . t)
 					      (python . t)
 					      (php . t)
-					      (R . t)
+					      (sqlite . t)
 					      (sh . t)
 					      (ditaa . t)))
 	       (visual-line-mode 1)
