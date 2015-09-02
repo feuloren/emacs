@@ -33,6 +33,7 @@
    visible-mark ace-jump-mode
    visual-regexp-steroids ag
    relative-line-numbers smart-mode-line
+   frame-fns
    ;; ido
    smex ido-ubiquitous flx-ido ido-vertical-mode
    ;; Dired
@@ -71,3 +72,7 @@
 						      package-archive-contents)))))
 
 (install-packages ft/needed-packages)
+
+;; populate .emacs file with :
+(add-to-list 'load-path "~/.emacs.d/emacs")
+(require 'init)

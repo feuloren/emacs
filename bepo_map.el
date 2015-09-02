@@ -1,6 +1,72 @@
+;;; bepo_map.el --- Keymap for a bépo keyboard
+;;; Code:
+
 (setq lexical-binding t)
 
+;;; Commentary:
+;; 
+
+(require 'hydra)
+(defhydra hydra-projectile (:exit t :hint nil)
+  "
+^Open^                 ^Operate^
+_n_: find file         _g_: search
+_t_: switch project    _s_: save all
+_d_: dired             _c_: compile
+"
+  ("n" projectile-find-file)
+  ("d" projectile-dired)
+  ("g" projectile-ag)
+  ("s" projectile-save-project-buffers)
+  ("t" projectile-switch-project)
+  ("c" projectile-compile-project))
+
+(defhydra hydra-org (:exit t :hint nil)
+  "
+^Clock^    ^Subtree^     ^Insert^        ^Capture^
+_i_: in    _r_: refile   _t_: timestamp  _j_
+_o_: out   _a_: archive
+"
+  ("j" org-capture)
+  ("i" org-clock-in)
+  ("o" org-agenda-clock-out)
+  ("t" org-time-stamp-inactive)
+  ("r" org-refile)
+  ("a" org-archive-subtree))
+
+(defhydra hydra-paredit (:exit t :hint nil)
+  "
+^Slurp^        ^Barf^         ^Splice^         ^Split^  ^Join^
+_t_: forward   _r_: forward   _d_: Kill back   _|_      _j_
+                              _e_: Raise
+"
+  ("|" paredit-split-sexp)
+  ("t" paredit-forward-slurp-sexp)
+  ("d" paredit-splice-sexp-killing-backward)
+  ("r" paredit-forward-barf-sexp)
+  ("e" paredit-raise-sexp)
+  ("j" paredit-join-sexps))
+
+(defhydra hydra-fly* (:hint nil)
+ "
+^Check^                ^Spell^
+_i_: goto next error   _s_: goto next error
+_e_: list errors       _t_: correct word
+                     _d_: change dictionnary
+                     _l_: toggle flyspell
+                     _v_: check buffer
+"
+ ("s" flyspell-goto-next-error) ;; not good bindings
+ ("t" ispell-word)
+ ("d" ispell-change-dictionary)
+ ("l" flyspell-mode)
+ ("i" flycheck-next-error)
+ ("e" flycheck-list-errors)
+ ("v" flyspell-buffer))
+
 (defun define-keys (map &rest keys)
+  "Defines multiple keybinding in the same MAP at once.
+Optional argument KEYS tr."
   (let ((saved-key))
     (dolist (key-or-fun keys)
       (cond (saved-key
@@ -22,8 +88,8 @@
   "®" #'end-of-line
   "<" #'beginning-of-buffer
   ">" #'end-of-buffer
-  "ß" #'ace-jump-mode
-  "a" #'isearch-forward
+  "v" #'avy-goto-char
+  "a" #'swiper
   "A" #'isearch-backward
   "L" #'er/expand-region
   ;; Edit
@@ -35,6 +101,7 @@
   "à" #'kill-ring-save
   "J" #'join-to-next-line
   "K" #'kill-whole-line
+  ";" #'endless/comment-line
   ;; Buffers
   "," nil
   ", c" #'ido-switch-buffer
@@ -43,45 +110,61 @@
   ;; Multiple cursors
   "m" #'mc/mark-next-like-this
   "M" #'mc/skip-to-next-like-this
-  "v" #'mark-next-like-symbol-under-cursor
-  "V" #'skip-to-next-like-symbol-under-cursor 
+  "ß" #'mark-next-like-symbol-under-cursor
+  "ẞ" #'skip-to-next-like-symbol-under-cursor
   ;; Projectile
-  "p" nil
-  "p n" #'projectile-find-file
-  "p d" #'projectile-dired
-  "p g" #'projectile-ag
-  "p s" #'projectile-save-project-buffers
-  "p t" #'projectile-switch-project
+  "p" #'hydra-projectile/body
+  ;;"p n" #'projectile-find-file
+  ;;"p d" #'projectile-dired
+  ;;"p g" #'projectile-ag
+  ;;"p s" #'projectile-save-project-buffers
+  ;;"p t" #'projectile-switch-project
+  ;;"p c" #'projectile-compile-project
   ;; Misc
   "?" #'help-around-cursor
   "*" #'ft/go-to-definition
   "'" #'transient-mark-mode
   "q" #'ft/god-q
   ;; Org
-  "l" nil
-  "l l" #'org-capture
-  "l i" #'org-clock-in
-  "l o" #'org-agenda-clock-out
-  "l t" #'org-time-stamp-inactive
+  "l" #'other-window
+  ;;"l l" #'org-capture
+  ;;"l i" #'org-clock-in
+  ;;"l o" #'org-agenda-clock-out
+  ;;"l t" #'org-time-stamp-inactive
+  ;;"l r" #'org-refile
+  ;;"l a" #'org-archive-subtree
   ;; Undo-tree
   "/" #'undo-tree-undo
   "+" #'undo-tree-redo
   ;; Yasnippets
   "f" #'ft/yas-insert-snippet
+  "F" #'aya-expand ; really cool but need some fixes for god-mode
+		   ; (deactivate when we enter the snippet, reactivate
+		   ; when we completed everything)
+  "M-f" #'aya-create
   ;; Paredit
   "|" #'paredit-split-sexp
-  "b" nil
-  "b t" #'paredit-forward-slurp-sexp
-  "b d" #'paredit-splice-sexp-killing-backward
-  "b r" #'paredit-forward-barf-sexp
+  "b" #'hydra-paredit/body
+  ;;"b t" #'paredit-forward-slurp-sexp
+  ;;"b d" #'paredit-splice-sexp-killing-backward
+  ;;"b r" #'paredit-forward-barf-sexp
   ;; Bookmark
-  "b b" #'bookmark-set
-  "b l" #'bookmark-bmenu-list
+  ;;"b b" #'bookmark-set
+  ;;"b l" #'bookmark-bmenu-list
   ;; Windows
   "«" #'split-window-vertically
   "»" #'split-window-horizontally
   "$" #'delete-window
   "\"" #'delete-other-windows
+  ;; Fly*
+  "n" #'hydra-fly*/body
+  ;;"n s" #'flyspell-goto-next-error ;; not good bindings
+  ;;"n r" #'ispell-word ;; it's a pain to type ns ns ns... better user a modifer
+  ;;"n i" #'flycheck-next-error
+  ;;"n e" #'flycheck-list-errors
+  "." #'smex
+
+  "z" #'hydra-org/body
 )
 (global-set-key (kbd "C-x C-n") #'ido-find-file)
 
@@ -89,6 +172,7 @@
 ;; to keep the ast valid
 (require 'subr-x)
 (defmacro ft/paredit-alternative (fun paredit-alternative)
+  "Wrap delete commands and invoke paredit alternative when paredit mode is on."
   `(defun ,(intern (string-join (list "ft/" (symbol-name fun)))) ()
      (interactive)
      (if (bound-and-true-p paredit-mode)
@@ -96,20 +180,21 @@
        (call-interactively ',fun))))
 
 (ft/paredit-alternative delete-backward-char paredit-backward-delete)
-(ft/paredit-alternative paredit-backward-kill-word backward-kill-word)
-(ft/paredit-alternative paredit-forward-kill-word kill-word)
-(ft/paredit-alternative paredit-kill-region kill-region)
+(ft/paredit-alternative backward-kill-word paredit-backward-kill-word)
+(ft/paredit-alternative kill-word paredit-forward-kill-word)
+(ft/paredit-alternative kill-region paredit-kill-region)
 
 ;; I prefer to join the next line to the current line, not the way
 ;; emacs does it.
 ;; If possible this command should even join lines according to what
 ;; semantically makes sense
 (defun join-to-next-line ()
+"Join the next line to the current line."
   (interactive)
   (join-line -1))
 
 (defun ft/god-q (arg)
-  "I want q in god-mode to do the regular 'closing' action in read-only buffers
+  "I want q in god-mode to do the regular 'closing' action in read-only buffers.
 uq invokes q-other-window"
   (interactive "P")
   (if (null arg)
@@ -122,12 +207,14 @@ uq invokes q-other-window"
 	  (call-interactively 'quoted-insert)))
     (call-interactively 'q-other-window)))
 
-;; Turn off god-mode after inserting the skeleton of a snippet so I
-;; can type right away
+(require 'yasnippet)
+(require 'auto-yasnippet)
 (defun ft/yas-insert-snippet ()
+  "Turn off `god-mode' after inserting the skeleton of a snippet so I can type right away."
   (interactive)
   (when (bound-and-true-p god-global-mode)
-    (god-mode-all))
+    (god-mode-all)) ;; not good, we should deactivate god-mode only
+  ;; when a snippet is inserted
   (call-interactively 'yas-insert-snippet))
 
 ;; Fix company and ido maps to have bépo-friendly bindings
@@ -139,10 +226,34 @@ uq invokes q-other-window"
 (require 'ido)
 (add-hook 'ido-setup-hook #'ido-add-bepo-bindings)
 (defun ido-add-bepo-bindings ()
+  "Fix ido keybindings.
+ido keymap is dynamic so this function is called every time ido is called."
   (define-keys
     ido-completion-map
     (kbd "C-t") #'ido-prev-match
     (kbd "C-r") #'ido-next-match))
 
+(defconst bepo-digits-replace-alist
+  '(("\"" . 1)
+    ("«" . 2)
+    ("»" . 3)
+    ("(" . 4)
+    (")" . 5)
+    ("@" . 6)
+    ("+" . 7)
+    ("-" . 8)
+    ("/" . 9)
+    ("*" . 0)))
+
+(defun ft/bepo-friendly-goto-line ()
+  "Not yet."
+  (interactive))
+;;  "On a bépo keyboard one has to hold shift to input digits.
+;;This inconvenient for fast input so we'll read any char and substitute the chars produced
+;;by non-shifted digit keys with their associated digit")
 
 (provide 'bepo_map)
+
+(provide 'bepo_map)
+
+;;; bepo_map.el ends here

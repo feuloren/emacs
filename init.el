@@ -1,17 +1,38 @@
 ;; Run GC every ~40Mo allocated
 (setq gc-cons-threshold 40000000) ; 800000 by default
 
-;;,---------------
-;;| Manage windows
-;;`---------------
+(set-keyboard-coding-system 'utf-8)
+
+;;,-------------------
+;;| Customizable parts
+;;`-------------------
+(defgroup perso nil
+  "")
+
+(defcustom tasks-file "~/org/tasks-main.org"
+  "Full path to this computer's task file"
+  :type 'file
+  :group 'perso)
+
+(defcustom notes-file "~/org/notes.org"
+  "Full path to this computer's notes file"
+  :type 'file
+  :group 'perso)
+
+;;,----------
+;;| Clipboard
+;;`----------
+(setq save-interprogram-paste-before-kill t)
+
+;;,----------------------------------
+;;| Manage windows (azerty keyboard)
+;;`----------------------------------
 
 (global-set-key (kbd "C-&") 'delete-other-windows)
 (global-set-key (kbd "C-é") 'split-window-vertically)
 (global-set-key (kbd "C-\"") 'split-window-horizontally)
 (global-set-key (kbd "C-à") 'delete-window)
 (global-set-key (kbd "C-²") 'delete-window)
-
-(set-keyboard-coding-system 'utf-8)
 
 ;;,----------------
 ;;| Package / MELPA
@@ -55,6 +76,10 @@
 ;;| Projectile
 ;;`-----------
 
+(require 'projectile)
+
+(setq projectile-enable-caching t
+      projectile-git-command "cat <(git ls-files -zco --exclude-standard) <(git --no-pager submodule --quiet foreach 'git ls-files --full-name -co --exclude-standard | sed s!^!$path/!')")
 (projectile-global-mode)
 
 ;;,--------------------
@@ -151,6 +176,7 @@
 				      (company-dabbrev-code company-gtags company-etags company-keywords)
 				      company-oddmuse company-files company-ispell
 				      (company-ispell company-dabbrev)))
+
 (define-key company-active-map [return] 'newline) ;; I don't want
 ;; company to get in my way
 (define-key company-active-map [tab] 'company-complete-selection) ;; we actually need something smarter like tab once to complete common part, then tap another timee to complete selction
@@ -168,7 +194,11 @@
       ad-do-it
     (call-interactively 'company-complete-selection)))
 
-(yas-global-mode 1)
+(setq yas-prompt-functions '(yas-ido-prompt yas-no-prompt yas-completing-prompt)
+      yas-indent-line 'auto
+      yas-also-auto-indent-first-line t)
+
+(add-hook 'after-init-hook #'yas-global-mode)
 
 ;; tab is for indent, I use yas-insert-snippet to select a snippet and expand it
 (define-key yas-minor-mode-map [tab] nil)
@@ -186,9 +216,14 @@
 
 ;; Set as default for JS file
 (add-to-list 'auto-mode-alist '("\\.js\\'" . js2-mode))
+(defun js2-hook ()
+  (tern-mode t))
+(add-hook 'js2-mode-hook #'js2-hook)
 
 (setq js2-strict-trailing-comma-warning nil)
 
+(add-to-list 'load-path "~/source/tern/emacs")
+(autoload 'tern-mode "tern.el" nil t)
 
 ;;,-----------------------------------
 ;;| Jinja 2 mode with custom functions
@@ -319,67 +354,14 @@
 ;;| Org mode
 ;;`---------
 (require 'org)
+;; Org mode for todos
+(require 'org-install)
+(define-key mode-specific-map [?a] 'org-agenda)
+(global-set-key (kbd "<f8>") 'org-agenda)
 (define-key org-mode-map (kbd "C-c *") 'org-edit-special)
 (define-key org-src-mode-map (kbd "C-c *") 'org-edit-src-exit)
 (define-key org-src-mode-map (kbd "C-c l") 'org-store-link)
 (setq org-src-fontify-natively t)
-
-(require 'htmlize)
-(require 'ox-html)
-(setq org-html-htmlize-output-type 'css)
-
-(require 'ob-php)
-
-(require 'ox-latex)
-(setq org-latex-listings 'minted)
-(add-to-list 'org-latex-packages-alist '("" "minted"))
-
-(setq org-capture-templates
-   `(("t" "Task" entry
-      (file+headline "~/org/tasks-main.org" "Tasks")
-      "* TODO %?
-  %u")
-     ("n" "Note" entry
-      (file "~/org/notes.org")
-      ,(let ((add-origin-file '(let ((file (org-capture-get :original-file)))
-				 (if (> (length file) 0)
-				     (string-join (list "From " "[[" file "]]")))))
-	     (add-content '(let ((content (plist-get org-store-link-plist :initial)))
-			     (if (> (length content) 0)
-				 (string-join
-				  (list "  #+begin_src "
-					(first (split-string
-						(with-current-buffer (org-capture-get :buffer)
-						  (symbol-name major-mode))
-						"-"))
-				   "\n" content
-				   "\n  #+end_src"))))))
-	 ;; build the template string for org-mode
-	 (mapconcat 'identity (list "* %U %?\n"
-			    "%" (prin1-to-string add-origin-file) "\n"
-			    "%" (prin1-to-string add-content))
-		    ""))
-      :prepend t)))
-
-;;,---------
-;;| Flycheck
-;;`---------
-(require 'flycheck)
-(global-flycheck-mode)
-(setq-default flycheck-disabled-checkers '(emacs-lisp-checkdoc)
-	      flycheck-idle-change-delay 0.2
-	      flycheck-display-errors-delay 0.1
-	      flycheck-display-errors-function 'flycheck-display-error-messages-unless-error-list)
-(require 'flycheck-tip)
-(flycheck-tip-use-timer 'verbose)
-
-;;,---------
-;;| Org mode
-;;`---------
-
-;; Org mode for todos
-(require 'org-install)
-(define-key mode-specific-map [?a] 'org-agenda)
 
 (add-to-list 'org-modules 'habits)
 
@@ -393,13 +375,16 @@
 	   org-deadline-warning-days 14
 	   org-reverse-note-order t
 	   org-fast-tag-selection-single-key 'expert
-	   org-todo-keywords '((sequence "TODO(t)"
-					 "STARTED(s)"
-					 "WAITING(w)"
-					 "DELEGATED(l)" "|"
-					 "DONE(d)"
-					 "DEFERRED(f)")))))
+	   org-todo-keywords '((sequence "TODO(t!)"
+					 "STARTED(s!)"
+					 "WAITING(w!)"
+					 "|"
+					 "DONE(d!)"
+					 "CANCELLED(f!)"))
+	   org-log-into-drawer t
+	   org-todo-log-states )))
 
+(require 'org-agenda)
 (eval-after-load "org-agenda"
   '(progn
      (define-key org-agenda-mode-map "\C-n" 'next-line)
@@ -412,9 +397,9 @@
 	 (call-interactively 'org-agenda-todo)))
      (define-key org-agenda-mode-map (kbd "C-c C-c") 'org-agenda-todo-choose-status)
 
-     (setq org-agenda-files '("~/org/tasks-main.org")
-           org-default-notes-file "~/org/notes.org"
-	   org-agenda-ndays 7
+     (setq org-agenda-files (list tasks-file)
+           org-default-notes-file notes-file
+	   org-agenda-span 7
 	   org-agenda-show-all-dates t
 	   org-agenda-skip-deadline-if-done t
 	   org-agenda-skip-scheduled-if-done t
@@ -457,17 +442,63 @@
 	       (visual-line-mode 1)
 	       (toggle-word-wrap 1)))
 
+(require 'ob-ditaa)
 (setq org-ditaa-jar-path "/usr/share/java/ditaa/ditaa-0_9.jar")
 
-;; Week view TODO
-;; (global-set-key (kbd "<f7>") 'org-agenda-week-view)
-(global-set-key (kbd "<f8>") 'org-agenda)
+(require 'htmlize)
+(require 'ox-html)
+(setq org-html-htmlize-output-type 'css)
+
+(require 'ob-php)
+
+(require 'ox-latex)
+(setq org-latex-listings 'minted)
+(add-to-list 'org-latex-packages-alist '("" "minted"))
+
+(setq org-capture-templates
+   `(("t" "Task" entry
+      (file+headline ,tasks-file "Tasks")
+      "* TODO %?
+  %u")
+     ("n" "Note" entry
+      (file ,notes-file)
+      ,(let ((add-origin-file '(let ((file (org-capture-get :original-file)))
+				 (if (> (length file) 0)
+				     (string-join (list "From " "[[" file "]]")))))
+	     (add-content '(let ((content (plist-get org-store-link-plist :initial)))
+			     (if (> (length content) 0)
+				 (string-join
+				  (list "  #+begin_src "
+					(first (split-string
+						(with-current-buffer (org-capture-get :buffer)
+						  (symbol-name major-mode))
+						"-"))
+				   "\n" content
+				   "\n  #+end_src"))))))
+	 ;; build the template string for org-mode
+	 (mapconcat 'identity (list "* %U %?\n"
+			    "%" (prin1-to-string add-origin-file) "\n"
+			    "%" (prin1-to-string add-content))
+		    ""))
+      :prepend t)))
 
 ;;,------------------------------
 ;;| Tech blog config for org-mode
 ;;`------------------------------
 (require 'org-blog)
 (define-key org-mode-map (kbd "C-c b") 'extract-bog-post)
+
+;;,---------
+;;| Flycheck
+;;`---------
+(require 'flycheck)
+(global-flycheck-mode)
+(setq-default flycheck-disabled-checkers '(emacs-lisp-checkdoc)
+	      flycheck-idle-change-delay 0.2
+	      flycheck-display-errors-delay 0.1
+	      flycheck-display-errors-function 'flycheck-display-error-messages-unless-error-list)
+(require 'flycheck-tip)
+(flycheck-tip-use-timer 'verbose)
 
 ;;,------------------------------
 ;;| Type q in a non-editor window
@@ -496,6 +527,26 @@ It finds the first window where q is not bound to self-insert and type q"
 
 ; And replacement functions
 (global-set-key (kbd "C-x C-b") 'ibuffer)
+
+;; rename the current file
+(defun rename-current-buffer-file ()
+  "Renames current buffer and file it is visiting."
+  (interactive)
+  (let ((name (buffer-name))
+        (filename (buffer-file-name)))
+    (if (not (and filename (file-exists-p filename)))
+        (error "Buffer '%s' is not visiting a file!" name)
+      (let ((new-name (read-file-name "New name: " filename)))
+        (if (get-buffer new-name)
+            (error "A buffer named '%s' already exists!" new-name)
+          (rename-file filename new-name 1)
+          (rename-buffer new-name)
+          (set-visited-file-name new-name)
+          (set-buffer-modified-p nil)
+          (message "File '%s' successfully renamed to '%s'"
+                   name (file-name-nondirectory new-name)))))))
+
+(global-set-key (kbd "C-x C-r") 'rename-current-buffer-file)
 
 ;;,-----------------------------
 ;;| Help for symbol under cursor
@@ -712,7 +763,7 @@ Operation depends on the mode :
 				    (relative-line-numbers-mode 0)
 				    (ft/god-mode-update-cursor)))
 
-(define-key god-local-mode-map (kbd ".") 'repeat)
+;;(define-key god-local-mode-map (kbd ".") 'repeat)
 
 (defun ft/god-mode-self-insert-for-org ()
   (interactive)
@@ -792,5 +843,103 @@ window."
 ;;`-----
 (setq doc-view-continuous t
       visual-line-fringe-indicators '(left-curly-arrow nil))
+;;,------
+;;| C/C++
+;;`------
+;;(defun ft/c-mode-hook ()
+;;  (irony-mode 1)
+;;  (irony-eldoc 1)
+;;  (hide-ifdef-mode 1))
+;;(add-hook c-mode-hook #'ft/c-mode-hook)
 
+(eval-after-load 'flycheck
+  '(add-hook 'flycheck-mode-hook #'flycheck-irony-setup))
+
+(global-set-key (kbd "C-x C-'") #'next-error)
+(global-set-key (kbd "<f5>") #'ff-find-other-file)
+
+;;,-----------------------------
+;;| Dark GTK+ theme if available
+;;`-----------------------------
+;; http://nicolas-petton.fr/blog/emacs-dark-window-decoration.html
+
+(require 'frame-fns)
+(defun set-frame-dark (frame)
+  (if (window-system)
+      (call-process-shell-command (concat "xprop -f _GTK_THEME_VARIANT 8u -set _GTK_THEME_VARIANT \"dark\" -name \""
+					  (get-frame-name frame)
+					  "\""))))
+(defun set-new-frame-dark (frame)
+  (if 
+      (set-selected-frame-dark)
+))
+;;(add-hook after-make-frame-functions #'set-frame-dark)
+
+;;(set-frame-dark (selected-frame))
+
+;;,----------------------
+;;| Clean up the modeline
+;;`----------------------
+(defun flycheck-mode-line-status-text (&optional status)
+  "Get a text describing STATUS for use in the mode line.
+
+STATUS defaults to `flycheck-last-status-change' if omitted or
+nil."
+  (let ((text (pcase (or status flycheck-last-status-change)
+                (`not-checked "")
+                (`no-checker "-")
+                (`running "*")
+                (`errored "!")
+                (`finished
+                 (if flycheck-current-errors
+                     (let-alist (flycheck-count-errors flycheck-current-errors)
+                       (format "%s|%s" (or .error 0) (or .warning 0)))
+                   ""))
+                (`interrupted "-")
+                (`suspicious "?"))))
+    (concat " ε" text)))
+
+;;,--------------------------
+;;| Clean up utilites buffers
+;;`--------------------------
+;;  Customize, Help, packages, compile-log, ag
+
+;;,---------
+;;| Flyspell
+;;`---------
+(global-set-key (kbd "<f7>") #'flyspell-buffer)
+(global-set-key (kbd "C-<f7>") #'flyspell-mode)
+(global-set-key (kbd "C-S-<f7>") #'ispell-change-dictionary)
+
+;;,------
+;;| Ocaml
+;;`------
+
+;; Add opam emacs directory to the load-path
+(setq opam-share (substring (shell-command-to-string "opam config var share 2> /dev/null") 0 -1))
+(add-to-list 'load-path (concat opam-share "/emacs/site-lisp"))
+;; Load merlin-mode
+(require 'merlin)
+;; Enable auto-complete
+;;(setq merlin-use-auto-complete-mode 'easy)
+;; Use opam switch to lookup ocamlmerlin binary
+(setq merlin-command 'opam)
+
+;;(add-hook 'tuareg-mode-hook #'utop-minor-mode)
+(add-hook 'tuareg-mode-hook #'merlin-mode)
+
+;;;;;;
+
+(defun endless/comment-line (n)
+  "Comment or urcomment current line and leave point after it."
+  (interactive "p")
+  (let ((range (list (line-beginning-position)
+                     (goto-char (line-end-position n)))))
+    (comment-or-uncomment-region
+     (apply #'min range)
+     (apply #'max range))
+    (forward-line 1)
+    (back-to-indentation)))
+
+;; The end
 (provide 'init)
