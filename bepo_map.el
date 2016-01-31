@@ -233,6 +233,11 @@ ido keymap is dynamic so this function is called every time ido is called."
     (kbd "C-t") #'ido-prev-match
     (kbd "C-r") #'ido-next-match))
 
+(require 'ivy)
+(define-keys ivy-minibuffer-map
+  "C-t" #'ivy-previous-line
+  "C-r" #'ivy-next-line)
+
 (defconst bepo-digits-replace-alist
   '(("\"" . 1)
     ("«" . 2)

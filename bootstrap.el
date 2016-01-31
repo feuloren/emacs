@@ -15,7 +15,7 @@
 (defvar ft/needed-packages
  '(
    ;; Essential
-   company-mode projectile undo-tree god-mode
+   company-mode projectile undo-tree god-mode swiper avy
    ;; Flycheck
    flycheck flycheck-tip
    ;; Web

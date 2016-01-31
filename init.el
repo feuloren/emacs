@@ -3,6 +3,16 @@
 
 (set-keyboard-coding-system 'utf-8)
 
+;;,------------------------
+;;| Initial windows config
+;;`------------------------
+(defun show-week-agenda-and-scratch ()
+  (split-window-horizontally)
+  (other-window 1)
+  (org-agenda-list)
+  (other-window -1))
+(add-hook 'after-init-hook #'show-week-agenda-and-scratch)
+
 ;;,-------------------
 ;;| Customizable parts
 ;;`-------------------
@@ -57,90 +67,110 @@
 (menu-bar-mode 0)
 (scroll-bar-mode -1)
 
+(setq tab-always-indent t)
+
+;;,------------
+;;| use-package
+;;`------------
+(eval-when-compile (require 'use-package))
+(require 'bind-key)
+;;(require 'use-package)
+
 ;;,----------
 ;;| Undo Tree
 ;;`----------
 
-(require 'undo-tree)
-(global-undo-tree-mode)
+(use-package undo-tree
+  :config
+  (global-undo-tree-mode))
 
 ;;,--------------------------
 ;;| Company + Jedi for python
 ;;`--------------------------
-(add-hook 'python-mode-hook (lambda ()
-			      (anaconda-mode)
-			      (eldoc-mode)
-			      (run-python "python")))
+(use-package python
+  :config
+  (defun ft/python-hook ()
+    (anaconda-mode)
+    (eldoc-mode)
+    (require 'pytest)
+    (local-set-key (kbd "C-c C-a") #'pytest-all)
+    (local-set-key (kbd "C-c C-m") #'pytest-module)
+    (run-python "python"))
+  (add-hook 'python-mode-hook #'ft/python-hook))
 
 ;;,-----------
 ;;| Projectile
 ;;`-----------
-
-(require 'projectile)
-
-(setq projectile-enable-caching t
-      projectile-git-command "cat <(git ls-files -zco --exclude-standard) <(git --no-pager submodule --quiet foreach 'git ls-files --full-name -co --exclude-standard | sed s!^!$path/!')")
-(projectile-global-mode)
+(use-package projectile
+  :init
+  (setq projectile-enable-caching t
+        projectile-git-command "cat <(git ls-files -zco --exclude-standard) <(git --no-pager submodule --quiet foreach 'git ls-files --full-name -co --exclude-standard | sed s!^!$path/!')"
+        projectile-mode-line '(:eval (format " [%s]" (projectile-project-name))))
+  :config
+  (projectile-global-mode))
 
 ;;,--------------------
 ;;| The silver searcher
 ;;`--------------------
 ;; Download windows executable here http://blog.kowalczyk.info/software/the-silver-searcher-for-windows.html
-(require 'ag)
-(setq ag-highlight-search t)
+(use-package ag
+  :init
+  (setq ag-highlight-search t))
 
 ;;,------------
 ;;| CSS editing
 ;;`------------
-; rainbow mode sets backgroudn color based on detected color code
+;; rainbow mode sets backgroudn color based on detected color code
+
 (add-hook 'css-mode-hook 'rainbow-mode)
 
 ;;,----
 ;;| IDO
 ;;`----
-(require 'ido)
+(use-package ido
+  :init
+  (setq ido-enable-prefix nil
+        ido-enable-flex-matching t
+        ido-create-new-buffer 'always
+        confirm-nonexistent-file-or-buffer nil
+        ido-use-filename-at-point 'guess
+        ido-max-prospects 10
+        ido-default-file-method 'selected-window
+        ido-auto-merge-work-directories-length -1)
+  (require 'flx-ido)
+  :config
+  ;; smarter fuzzy matching for ido
+  (flx-ido-mode +1)
+  ;; disable ido faces to see flx highlights
+  (setq ido-use-faces nil)
 
-(setq ido-enable-prefix nil
-      ido-enable-flex-matching t
-      ido-create-new-buffer 'always
-      confirm-nonexistent-file-or-buffer nil
-      ido-use-filename-at-point 'guess
-      ido-max-prospects 10
-      ido-default-file-method 'selected-window
-      ido-auto-merge-work-directories-length -1)
+  (ido-vertical-mode t)
 
-;;; smarter fuzzy matching for ido
-(flx-ido-mode +1)
-;; disable ido faces to see flx highlights
-(setq ido-use-faces nil)
-
-(ido-vertical-mode t)
-
-(ido-mode +1)
-(ido-ubiquitous-mode +1)
+  (ido-mode +1)
+  (ido-everywhere)
+  (ido-ubiquitous-mode +1))
 
 ;;,--------------------------
 ;;| Highlight symbol at point
 ;;`--------------------------
 
-(require 'highlight-symbol)
+(use-package highlight-symbol
+  :init
+  (setq highlight-symbol-on-navigation-p t ; enable highlighting symbol at point automatically
+        highlight-symbol-idle-delay 0.3)
+  :config
+  (highlight-symbol-nav-mode)
+  (add-hook 'prog-mode-hook 'highlight-symbol-mode)
+  (add-hook 'org-mode-hook 'highlight-symbol-mode)
+  (defun highligh-at-click-point (event)
+    (interactive "e")
+    (goto-char (posn-point (event-start event)))
+    (highlight-symbol-at-point))
 
-(highlight-symbol-nav-mode)
+  (global-set-key [(control shift mouse-1)] #'highligh-at-click-point)
 
-(add-hook 'prog-mode-hook 'highlight-symbol-mode)
-(add-hook 'org-mode-hook 'highlight-symbol-mode)
-(setq highlight-symbol-on-navigation-p t ; enable highlighting symbol at point automatically
-      highlight-symbol-idle-delay 0.3)
-
-(global-set-key [(control shift mouse-1)]
-		(lambda (event)
-		  (interactive "e")
-		  (goto-char (posn-point (event-start event)))
-		  (highlight-symbol-at-point)))
-
-(global-set-key (kbd "M-n") 'highlight-symbol-next)
-(global-set-key (kbd "M-p") 'highlight-symbol-prev)
-
+  (global-set-key (kbd "M-n") 'highlight-symbol-next)
+  (global-set-key (kbd "M-p") 'highlight-symbol-prev))
 
 ;;,--------------------------
 ;;| Show matching parentheses
@@ -161,69 +191,77 @@
 				  (eldoc-mode 1)
 				  (paredit-mode)))
 
+;;,-------
+;;| Ispell
+;;`-------
+(use-package ispell
+             :init
+             (setq ispell-look-command "/usr/bin/look"))
+
 ;;,----------------------
 ;;| Company (autocomple everything)
 ;;`----------------------
 (require 'company)
 (require 'company-dabbrev)
+(require 'company-capf)
 
 (setq company-idle-delay 0.1
       company-frontends '(company-pseudo-tooltip-frontend company-echo-metadata-frontend)
       company-minimum-prefix-length 1
       company-dabbrev-downcase nil
       company-dabbrev-ignore-case t
-      company-backends '(company-bbdb company-nxml company-css company-irony company-cmake company-capf
-				      (company-dabbrev-code company-gtags company-etags company-keywords)
-				      company-oddmuse company-files company-ispell
-				      (company-ispell company-dabbrev)))
+      company-backends '((company-capf company-dabbrev-code company-keywords)
+                         company-files company-ispell
+                         (company-ispell ;;company-dabbrev
+                          )))
 
 (define-key company-active-map [return] 'newline) ;; I don't want
 ;; company to get in my way
 (define-key company-active-map [tab] 'company-complete-selection) ;; we actually need something smarter like tab once to complete common part, then tap another timee to complete selction
 (global-company-mode)
 
+(company-quickhelp-mode 1)
+
 ;;,-----------
 ;;| Yasnippets
 ;;`-----------
-(require 'yasnippet)
+(use-package yasnippet
+  :init
+  (setq yas-prompt-functions '(yas-ido-prompt yas-no-prompt yas-completing-prompt)
+        yas-indent-line 'auto
+        yas-also-auto-indent-first-line t)
+  :config
 
-;; When the company popup is on I want tab to complete the selection
-;; not go to the next field
-(defadvice yas-next-field-or-maybe-expand (around yas-after-company-advice activate compile)
-  (if (null company-point)
-      ad-do-it
-    (call-interactively 'company-complete-selection)))
+  ;; When the company popup is on I want tab to complete the selection
+  ;; not go to the next field
+  (defadvice yas-next-field-or-maybe-expand (around yas-after-company-advice activate compile)
+    (if (null company-point)
+        ad-do-it
+      (call-interactively 'company-complete-selection)))
 
-(setq yas-prompt-functions '(yas-ido-prompt yas-no-prompt yas-completing-prompt)
-      yas-indent-line 'auto
-      yas-also-auto-indent-first-line t)
-
-(add-hook 'after-init-hook #'yas-global-mode)
-
-;; tab is for indent, I use yas-insert-snippet to select a snippet and expand it
-(define-key yas-minor-mode-map [tab] nil)
+  (add-hook 'after-init-hook #'yas-global-mode)
+  ;; tab is for indent, I use yas-insert-snippet to select a snippet and expand it
+  (define-key yas-minor-mode-map [tab] nil))
 
 ;;,---------
 ;;| Web mode
 ;;`---------
-(require 'web-mode)
-(add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
+(use-package web-mode
+  :mode "\\.html?\\'")
 
 ;;,---------
 ;;| JS2 mode
 ;;`---------
-(require 'js2-mode)
-
-;; Set as default for JS file
-(add-to-list 'auto-mode-alist '("\\.js\\'" . js2-mode))
-(defun js2-hook ()
-  (tern-mode t))
-(add-hook 'js2-mode-hook #'js2-hook)
-
-(setq js2-strict-trailing-comma-warning nil)
-
-(add-to-list 'load-path "~/source/tern/emacs")
-(autoload 'tern-mode "tern.el" nil t)
+(use-package js2-mode
+  :mode "\\.js\\'"
+  :init
+  (setq js2-strict-trailing-comma-warning nil)
+  :config
+  (defun js2-hook ()
+    (tern-mode t))
+  (add-hook 'js2-mode-hook #'js2-hook)
+  (add-to-list 'load-path "~/source/tern/emacs")
+  (autoload 'tern-mode "tern.el" nil t))
 
 ;;,-----------------------------------
 ;;| Jinja 2 mode with custom functions
@@ -255,8 +293,6 @@
 (require 'emmet-mode)
 ;; Activates in sgml and css modes
 (add-hook 'sgml-mode-hook 'emmet-mode)
-(add-hook 'css-mode-hook 'emmet-mode)
-(add-hook 'php-mode-hook 'emmet-mode)
 (add-hook 'web-mode-hook 'emmet-mode)
 (setq emmet-preview-default nil)
 
@@ -358,9 +394,9 @@
 (require 'org-install)
 (define-key mode-specific-map [?a] 'org-agenda)
 (global-set-key (kbd "<f8>") 'org-agenda)
-(define-key org-mode-map (kbd "C-c *") 'org-edit-special)
-(define-key org-src-mode-map (kbd "C-c *") 'org-edit-src-exit)
-(define-key org-src-mode-map (kbd "C-c l") 'org-store-link)
+(define-key org-mode-map (kbd "C-c C-*") 'org-edit-special)
+(define-key org-src-mode-map (kbd "C-c C-*") 'org-edit-src-exit)
+(define-key org-src-mode-map (kbd "C-c C-l") 'org-store-link)
 (setq org-src-fontify-natively t)
 
 (add-to-list 'org-modules 'habits)
@@ -430,30 +466,31 @@
 ]+>")))
 	    (org-agenda-overriding-header "Unscheduled TODO entries: ")))))))
 
-(add-to-list 'org-mode-hook
-	     (lambda ()
-	       (org-babel-do-load-languages 'org-babel-load-languages
-					    '((emacs-lisp . t)
-					      (python . t)
-					      (php . t)
-					      (sqlite . t)
-					      (sh . t)
-					      (ditaa . t)))
-	       (visual-line-mode 1)
-	       (toggle-word-wrap 1)))
-
-(require 'ob-ditaa)
-(setq org-ditaa-jar-path "/usr/share/java/ditaa/ditaa-0_9.jar")
-
-(require 'htmlize)
-(require 'ox-html)
-(setq org-html-htmlize-output-type 'css)
-
-(require 'ob-php)
-
-(require 'ox-latex)
-(setq org-latex-listings 'minted)
-(add-to-list 'org-latex-packages-alist '("" "minted"))
+;;(add-to-list 'org-mode-hook
+;;	     (lambda ()
+;;	       (org-babel-do-load-languages 'org-babel-load-languages
+;;	        			    '((emacs-lisp . t)
+;;	        			      (python . t)
+;;	        			      (php . t)
+;;	        			      (sqlite . t)
+;;	        			      (sh . t)
+;;	        			      (ditaa . t)
+;;                                              (R . t)))
+;;	       (visual-line-mode 1)
+;;	       (toggle-word-wrap 1)))
+;;
+;;(require 'ob-ditaa)
+;;(setq org-ditaa-jar-path "/usr/share/java/ditaa/ditaa-0_9.jar")
+;;
+;;(require 'htmlize)
+;;(require 'ox-html)
+;;(setq org-html-htmlize-output-type 'css)
+;;
+;;(require 'ob-php)
+;;
+;;(require 'ox-latex)
+;;(setq org-latex-listings 'minted)
+;;(add-to-list 'org-latex-packages-alist '("" "minted"))
 
 (setq org-capture-templates
    `(("t" "Task" entry
@@ -496,9 +533,11 @@
 (setq-default flycheck-disabled-checkers '(emacs-lisp-checkdoc)
 	      flycheck-idle-change-delay 0.2
 	      flycheck-display-errors-delay 0.1
-	      flycheck-display-errors-function 'flycheck-display-error-messages-unless-error-list)
-(require 'flycheck-tip)
-(flycheck-tip-use-timer 'verbose)
+              flycheck-display-errors-function 'flycheck-display-error-messages
+              ;; flycheck-display-errors-function 'flycheck-display-error-messages-unless-error-list
+              )
+;; (require 'flycheck-tip)
+;; (flycheck-tip-use-timer 'verbose)
 
 ;;,------------------------------
 ;;| Type q in a non-editor window
@@ -551,6 +590,13 @@ It finds the first window where q is not bound to self-insert and type q"
 ;;,-----------------------------
 ;;| Help for symbol under cursor
 ;;`-----------------------------
+(defun ft-anaconda-show-doc-callback (result)
+  (if result
+      (progn
+        (anaconda-mode-documentation-view result)
+        (other-window -1))
+    (message "No doc found")))
+
 (defun help-around-cursor ()
   "Try to be smart and open help/definition for symbol under cursor
 Operation depends on the mode :
@@ -561,16 +607,15 @@ Operation depends on the mode :
 - In undefined modes act as if in amcs-lisp mode"
   (interactive)
   (let ((sym (symbol-at-point)))
-    (case major-mode
-      ('clojure-mode (message "Not yet, sorry"))
-      ('python-mode (call-interactively 'anaconda-mode-view-doc)
-		    ;; I want the focus to stay in the calling window
-		    (other-window -1))
-      (t
-       (cond ((or (functionp sym) (macrop sym) (special-form-p sym))
-	      (describe-function sym))
-	     ((boundp sym) (describe-variable sym))
-	     (t (message (concat (symbol-name sym) " not a known symbol, use C-u to search for sexp head"))))))))
+    (cond
+     ((eq major-mode 'clojure-mode) (message "Not yet, sorry"))
+     ((bound-and-true-p tide-mode) (call-interactively 'tide-documentation-at-point))
+     ((eq major-mode 'python-mode) (anaconda-mode-call "goto_definitions" #'ft-anaconda-show-doc-callback))
+     ((bound-and-true-p robe-mode) (call-interactively 'robe-doc))
+     (t (cond ((or (functionp sym) (macrop sym) (special-form-p sym))
+               (describe-function sym))
+              ((boundp sym) (describe-variable sym))
+              (t (message (concat (symbol-name sym) " not a known symbol, use C-u to search for sexp "))))))))
 
 (global-set-key (kbd "<C-f1>") 'help-around-cursor)
 
@@ -579,7 +624,9 @@ Operation depends on the mode :
   (interactive)
   (cond
    ((eq major-mode 'emacs-lisp-mode) (find-function-do-it (function-called-at-point) nil 'switch-to-buffer))
+   ((bound-and-true-p tide-mode) (push-mark) (call-interactively 'tide-jump-to-definition))
    ((bound-and-true-p anaconda-mode) (call-interactively 'anaconda-mode-goto-definitions))
+   ((bound-and-true-p robe-mode) (call-interactively 'robe-jump))
    ((bound-and-true-p semantic-mode) (call-interactively 'semantic-ia-fast-jump)))) ; TODO extend for vars, face and other modes
 
 (defun ft/go-to-forward-mouse (nk-event)
@@ -687,7 +734,7 @@ Operation depends on the mode :
          "config" "--add" "remote.origin.fetch"
          fetch-address)))))
 
-(add-hook 'magit-mode-hook #'endless/add-PR-fetch)
+;;(add-hook 'magit-mode-hook #'endless/add-PR-fetch)
 
 ;;,----------------
 ;;| Smart mode line
@@ -697,7 +744,7 @@ Operation depends on the mode :
 (sml/setup)
 
 ;;,-----------------
-;;| Dash integration
+;;| Dsah integration
 ;;`-----------------
 ;;(require 'helm-dash)
 ;;(defun ft/dash-install ()
@@ -734,9 +781,11 @@ Operation depends on the mode :
 ;;,----------------------
 ;;| Relative line numbers
 ;;`----------------------
-(require 'relative-line-numbers)
-(setq relative-line-numbers-current-line-symbol ">"
-      relative-line-numbers-motion-function 'forward-visible-line)
+(use-package relative-line-numbers
+             :init
+             (setq relative-line-numbers-current-line-symbol ">"
+                   relative-line-numbers-motion-function 'forward-visible-line
+                   relative-line-numbers-max-count 9))
 
 ;;,---------
 ;;| God Mode
@@ -749,7 +798,7 @@ Operation depends on the mode :
 
 ; change cursor according to god-mode state
 (defun ft/god-mode-update-cursor ()
-  (setq cursor-type (if (or god-local-mode buffer-read-only)
+  (setq cursor-type (if god-local-mode ;;(or god-local-mode buffer-read-only)
                         'box
                       'bar)))
 
@@ -757,10 +806,10 @@ Operation depends on the mode :
 (setq god-exempt-predicates nil)
 (add-hook 'god-mode-enabled-hook (lambda ()
 				   (company-cancel)
-				   (relative-line-numbers-mode)
+				   ;; (relative-line-numbers-mode)
 				   (ft/god-mode-update-cursor)))
 (add-hook 'god-mode-disabled-hook (lambda ()
-				    (relative-line-numbers-mode 0)
+				    ;; (relative-line-numbers-mode 0)
 				    (ft/god-mode-update-cursor)))
 
 ;;(define-key god-local-mode-map (kbd ".") 'repeat)
@@ -782,6 +831,11 @@ Operation depends on the mode :
     ad-do-it))
 
 (add-hook 'after-init-hook #'god-mode-all)
+
+(defun org-mode-change-major-mode ()
+  (if (eq major-mode 'fundamental-mode)
+      (god-mode-all)))
+;; (add-hook 'after-change-major-mode-hook #'god-mode-change-major-mode)
 
 ;;,------------
 ;;| Common Lisp
@@ -832,11 +886,16 @@ window."
 ;;,-----
 ;;| Rust
 ;;`-----
-;;(require 'rust-mode)
-;;(add-to-list 'rust-mode-hook (lambda ()
-;;			       (require 'racer)
-;;			       (setq racer-rust-src-path "~/sources/rust/src/")
-;;			       (setq racer-cmd "~/source/racer/target/release/racer")))
+(use-package rust-mode
+  :config
+  (defun ft/rust-config ()
+    (require 'racer)
+    (racer-activate)
+    (add-hook 'flycheck-mode-hook #'flycheck-rust-setup)
+    (set (make-local-variable 'company-backends) '(company-racer))
+    (setq racer-rust-src-path "/usr/src/rust/src/")
+    (setq racer-cmd "/usr/bin/racer"))
+  (add-to-list 'rust-mode-hook #'ft/rust-config))
 
 ;;,-----
 ;;| Misc
@@ -852,8 +911,8 @@ window."
 ;;  (hide-ifdef-mode 1))
 ;;(add-hook c-mode-hook #'ft/c-mode-hook)
 
-(eval-after-load 'flycheck
-  '(add-hook 'flycheck-mode-hook #'flycheck-irony-setup))
+;; (eval-after-load 'flycheck
+;; '(add-hook 'flycheck-mode-hook #'flycheck-irony-setup))
 
 (global-set-key (kbd "C-x C-'") #'next-error)
 (global-set-key (kbd "<f5>") #'ff-find-other-file)
@@ -869,13 +928,10 @@ window."
       (call-process-shell-command (concat "xprop -f _GTK_THEME_VARIANT 8u -set _GTK_THEME_VARIANT \"dark\" -name \""
 					  (get-frame-name frame)
 					  "\""))))
-(defun set-new-frame-dark (frame)
-  (if 
-      (set-selected-frame-dark)
-))
-;;(add-hook after-make-frame-functions #'set-frame-dark)
 
-;;(set-frame-dark (selected-frame))
+;; (remove-hook after-make-frame-functions #'set-frame-dark)
+
+(set-frame-dark (selected-frame))
 
 ;;,----------------------
 ;;| Clean up the modeline
@@ -899,47 +955,86 @@ nil."
                 (`suspicious "?"))))
     (concat " ε" text)))
 
-;;,--------------------------
-;;| Clean up utilites buffers
-;;`--------------------------
-;;  Customize, Help, packages, compile-log, ag
-
 ;;,---------
 ;;| Flyspell
 ;;`---------
-(global-set-key (kbd "<f7>") #'flyspell-buffer)
-(global-set-key (kbd "C-<f7>") #'flyspell-mode)
-(global-set-key (kbd "C-S-<f7>") #'ispell-change-dictionary)
+;; (use-package flyspell
+;; :bind (("<f7>" . #'flyspell-buffer)
+;; ("C-<f7>" . #'flyspell-mode)
+;; ("C-S-<f7>" . #'ispell-change-dictionary)))
 
 ;;,------
 ;;| Ocaml
 ;;`------
 
-;; Add opam emacs directory to the load-path
-(setq opam-share (substring (shell-command-to-string "opam config var share 2> /dev/null") 0 -1))
-(add-to-list 'load-path (concat opam-share "/emacs/site-lisp"))
 ;; Load merlin-mode
-(require 'merlin)
-;; Enable auto-complete
-;;(setq merlin-use-auto-complete-mode 'easy)
-;; Use opam switch to lookup ocamlmerlin binary
-(setq merlin-command 'opam)
+(use-package tuareg
+  :mode "\\.ml\\'"
+  :config
+  (setq opam-share (substring (shell-command-to-string "opam config var share 2> /dev/null") 0 -1))
+  (add-to-list 'load-path (concat opam-share "/emacs/site-lisp"))
 
-;;(add-hook 'tuareg-mode-hook #'utop-minor-mode)
-(add-hook 'tuareg-mode-hook #'merlin-mode)
+  (require 'merlin)
+  ;; Use opam switch to lookup ocamlmerlin binary
+  (setq merlin-command 'opam)
+
+  ;;(add-hook 'tuareg-mode-hook #'utop-minor-mode)
+  (add-hook 'tuareg-mode-hook #'merlin-mode))
 
 ;;;;;;
 
 (defun endless/comment-line (n)
   "Comment or urcomment current line and leave point after it."
   (interactive "p")
-  (let ((range (list (line-beginning-position)
-                     (goto-char (line-end-position n)))))
+  (let ((start (line-beginning-position))
+        (end (goto-char (line-end-position n))))
     (comment-or-uncomment-region
-     (apply #'min range)
-     (apply #'max range))
+     (min start end)
+     (max start end))
     (forward-line 1)
     (back-to-indentation)))
+
+;; PDF
+(use-package pdf-tools
+  :config
+  (pdf-tools-install))
+
+;;,-------
+;;| tcl/tk
+;;`-------
+(use-package tcl-mode
+  :mode "\\.tk\\'")
+
+;;,-----
+;;| Ruby
+;;`-----
+(use-package inf-ruby
+  :init
+  (setq inf-ruby-default-implementation "pry"))
+
+(use-package robe
+  :init
+  (setq robe-completing-read-func 'ido-completing-read)
+  :config
+  (defun setup-robe ()
+    (robe-start)
+    (robe-mode))
+  (add-hook 'ruby-mode-hook #'setup-robe))
+
+(use-package skewer-mode
+             :commands (run-skewer skewer-mode)
+             :init
+             (setq httpd-port 8088
+                   httpd-root "~/"))
+
+(use-package tide
+  )
+
+;;,-----------------
+;;| Custom powerline
+;;`-----------------
+(require 'ft-line)
+(add-hook 'after-init-hook #'ft/powerline-theme)
 
 ;; The end
 (provide 'init)
