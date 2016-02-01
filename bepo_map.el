@@ -24,10 +24,11 @@ _d_: dired             _c_: compile
 (defhydra hydra-org (:exit t :hint nil)
   "
 ^Clock^    ^Subtree^     ^Insert^        ^Capture^
-_i_: in    _r_: refile   _t_: timestamp  _j_
+_i_: in    _r_: refile   _t_: timestamp  _z_
 _o_: out   _a_: archive
 "
-  ("j" org-capture)
+  ("z" org-capture)
+  ("w" org-capture)
   ("i" org-clock-in)
   ("o" org-agenda-clock-out)
   ("t" org-time-stamp-inactive)
@@ -165,6 +166,7 @@ Optional argument KEYS tr."
   "." #'smex
 
   "z" #'hydra-org/body
+  "w" #'hydra-org/body
 )
 (global-set-key (kbd "C-x C-n") #'ido-find-file)
 

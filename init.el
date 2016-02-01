@@ -19,8 +19,13 @@
 (defgroup perso nil
   "")
 
-(defcustom tasks-file "~/org/tasks-main.org"
+(defcustom tasks-file "~/org/tasks.org"
   "Full path to this computer's task file"
+  :type 'file
+  :group 'perso)
+
+(defcustom work-file "~/org/work.org"
+  "Full path to work task file"
   :type 'file
   :group 'perso)
 
@@ -433,7 +438,7 @@
 	 (call-interactively 'org-agenda-todo)))
      (define-key org-agenda-mode-map (kbd "C-c C-c") 'org-agenda-todo-choose-status)
 
-     (setq org-agenda-files (list tasks-file)
+     (setq org-agenda-files (list tasks-file work-file)
            org-default-notes-file notes-file
 	   org-agenda-span 7
 	   org-agenda-show-all-dates t
@@ -497,6 +502,10 @@
       (file+headline ,tasks-file "Tasks")
       "* TODO %?
   %u")
+     ("w" "Work task" entry
+      (file+headline ,work-file "Tasks")
+      "* TODO %?
+%u")
      ("n" "Note" entry
       (file ,notes-file)
       ,(let ((add-origin-file '(let ((file (org-capture-get :original-file)))
@@ -609,6 +618,7 @@ Operation depends on the mode :
   (let ((sym (symbol-at-point)))
     (cond
      ((eq major-mode 'clojure-mode) (message "Not yet, sorry"))
+     ((eq major-mode 'slime-repl-mode) (call-interactively 'slime-documentation))
      ((bound-and-true-p tide-mode) (call-interactively 'tide-documentation-at-point))
      ((eq major-mode 'python-mode) (anaconda-mode-call "goto_definitions" #'ft-anaconda-show-doc-callback))
      ((bound-and-true-p robe-mode) (call-interactively 'robe-doc))
@@ -840,7 +850,7 @@ Operation depends on the mode :
 ;;,------------
 ;;| Common Lisp
 ;;`------------
-(setq inferior-lisp-program "/usr/bin/clisp")
+(setq inferior-lisp-program "/usr/bin/sbcl")
 (require 'slime)
 (slime-setup '(slime-fancy
 	       slime-company))
