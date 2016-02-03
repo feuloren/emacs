@@ -65,6 +65,20 @@ _e_: list errors       _t_: correct word
  ("e" flycheck-list-errors)
  ("v" flyspell-buffer))
 
+(defhydra hdyra-magit (:exit t :hint nil)
+  "
+^Status^               ^File^
+_c_: current project   _b_: blame
+_t_: choose project"
+  ("c" magit-status)
+  ("t" ft/magit-projectile)
+  ("b" magit-blame))
+
+(defun ft/magit-projectile ()
+  (interactive)
+  (let ((projectile-switch-project-action #'magit-status))
+    (call-interactively #'projectile-switch-project)))
+
 (defun define-keys (map &rest keys)
   "Defines multiple keybinding in the same MAP at once.
 Optional argument KEYS tr."
@@ -164,9 +178,11 @@ Optional argument KEYS tr."
   ;;"n i" #'flycheck-next-error
   ;;"n e" #'flycheck-list-errors
   "." #'smex
-
+  ;; Org
   "z" #'hydra-org/body
   "w" #'hydra-org/body
+  ;; Magit
+  "é" #'hdyra-magit/body
 )
 (global-set-key (kbd "C-x C-n") #'ido-find-file)
 
