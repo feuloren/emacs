@@ -100,7 +100,7 @@
     (require 'pytest)
     (local-set-key (kbd "C-c C-a") #'pytest-all)
     (local-set-key (kbd "C-c C-m") #'pytest-module)
-    (run-python "python"))
+    (run-python "python3"))
   (add-hook 'python-mode-hook #'ft/python-hook))
 
 ;;,-----------
@@ -635,7 +635,7 @@ Operation depends on the mode :
   (cond
    ((eq major-mode 'emacs-lisp-mode) (find-function-do-it (function-called-at-point) nil 'switch-to-buffer))
    ((bound-and-true-p tide-mode) (push-mark) (call-interactively 'tide-jump-to-definition))
-   ((bound-and-true-p anaconda-mode) (call-interactively 'anaconda-mode-goto-definitions))
+   ((bound-and-true-p anaconda-mode) (call-interactively 'anaconda-mode-find-definitions))
    ((bound-and-true-p robe-mode) (call-interactively 'robe-jump))
    ((bound-and-true-p semantic-mode) (call-interactively 'semantic-ia-fast-jump)))) ; TODO extend for vars, face and other modes
 
@@ -1045,6 +1045,14 @@ nil."
 ;;`-----------------
 (require 'ft-line)
 (add-hook 'after-init-hook #'ft/powerline-theme)
+
+;;,--------------------
+;;| Handle mac keyboard
+;;`--------------------
+(setq mac-option-key-is-meta nil)
+(setq mac-command-key-is-meta t)
+(setq mac-command-modifier 'meta)
+(setq mac-option-modifier nil)
 
 ;; The end
 (provide 'init)
