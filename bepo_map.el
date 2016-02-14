@@ -104,10 +104,7 @@ Optional argument KEYS tr."
   "K" #'kill-whole-line
   ";" #'endless/comment-line
   ;; Buffers
-  "," nil
-  ", c" #'ido-switch-buffer
-  ", t" #'previous-buffer
-  ", r" #'next-buffer
+  "," #'ido-switch-buffer
   ;; Multiple cursors
   "m" #'mc/mark-next-like-this
   "M" #'mc/skip-to-next-like-this
@@ -115,25 +112,11 @@ Optional argument KEYS tr."
   "ẞ" #'skip-to-next-like-symbol-under-cursor
   ;; Projectile
   "p" #'hydra-projectile/body
-  ;;"p n" #'projectile-find-file
-  ;;"p d" #'projectile-dired
-  ;;"p g" #'projectile-ag
-  ;;"p s" #'projectile-save-project-buffers
-  ;;"p t" #'projectile-switch-project
-  ;;"p c" #'projectile-compile-project
   ;; Misc
-  "?" #'help-around-cursor
-  "*" #'ft/go-to-definition
   "'" #'transient-mark-mode
   "q" #'ft/god-q
   ;; Org
   "l" #'other-window
-  ;;"l l" #'org-capture
-  ;;"l i" #'org-clock-in
-  ;;"l o" #'org-agenda-clock-out
-  ;;"l t" #'org-time-stamp-inactive
-  ;;"l r" #'org-refile
-  ;;"l a" #'org-archive-subtree
   ;; Undo-tree
   "/" #'undo-tree-undo
   "+" #'undo-tree-redo
@@ -146,12 +129,6 @@ Optional argument KEYS tr."
   ;; Paredit
   "|" #'paredit-split-sexp
   "b" #'hydra-paredit/body
-  ;;"b t" #'paredit-forward-slurp-sexp
-  ;;"b d" #'paredit-splice-sexp-killing-backward
-  ;;"b r" #'paredit-forward-barf-sexp
-  ;; Bookmark
-  ;;"b b" #'bookmark-set
-  ;;"b l" #'bookmark-bmenu-list
   ;; Windows
   "«" #'split-window-vertically
   "»" #'split-window-horizontally
@@ -159,10 +136,7 @@ Optional argument KEYS tr."
   "\"" #'delete-other-windows
   ;; Fly*
   "n" #'hydra-fly*/body
-  ;;"n s" #'flyspell-goto-next-error ;; not good bindings
-  ;;"n r" #'ispell-word ;; it's a pain to type ns ns ns... better user a modifer
-  ;;"n i" #'flycheck-next-error
-  ;;"n e" #'flycheck-list-errors
+
   "." #'smex
 
   "z" #'hydra-org/body

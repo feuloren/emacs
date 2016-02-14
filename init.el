@@ -13,11 +13,17 @@
   (other-window -1))
 (add-hook 'after-init-hook #'show-week-agenda-and-scratch)
 
+;; Start in scratch buffer, in org mode and with no message
+(setq inhibit-startup-screen t
+      initial-major-mode 'org-mode
+      initial-scratch-message nil)
+
 ;;,-------------------
 ;;| Customizable parts
 ;;`-------------------
 (defgroup perso nil
-  "")
+  "Configurations for this init file to be used on different computers."
+  :group 'emacs)
 
 (defcustom tasks-file "~/org/tasks.org"
   "Full path to this computer's task file"
@@ -54,8 +60,6 @@
 ;;`----------------
 
 (require 'package)
-;(add-to-list 'package-archives
-;'("melpa-stable" . "http://melpa-stable.milkbox.net/packages/") t)
 (add-to-list 'package-archives
       '("melpa" . "http://melpa.milkbox.net/packages/") t)
 (package-initialize)
@@ -79,7 +83,7 @@
 ;;`------------
 (eval-when-compile (require 'use-package))
 (require 'bind-key)
-;;(require 'use-package)
+(require 'use-package)
 
 ;;,----------
 ;;| Undo Tree
@@ -87,14 +91,20 @@
 
 (use-package undo-tree
   :config
+  (define-key undo-tree-map (kbd "C-?") nil)
   (global-undo-tree-mode))
 
 ;;,--------------------------
 ;;| Company + Jedi for python
 ;;`--------------------------
-(use-package python
+(use-package python-mode
+  :mode "\\.py\\'"
+  :interpreter "python"
   :config
   (defun ft/python-hook ()
+    (require 'anaconda-mode)
+    (define-key anaconda-mode-map (kbd "C-*") #'ft/anaconda-find-definition)
+    (define-key anaconda-mode-map (kbd "C-?") #'anaconda-mode-show-doc)
     (anaconda-mode)
     (eldoc-mode)
     (require 'pytest)
@@ -102,6 +112,17 @@
     (local-set-key (kbd "C-c C-m") #'pytest-module)
     (run-python "python"))
   (add-hook 'python-mode-hook #'ft/python-hook))
+
+(defun ft/anaconda-find-definition ()
+  (interactive)
+  (anaconda-mode-call "goto_definitions" #'ft-anaconda-show-doc-callback))
+
+(defun ft-anaconda-show-doc-callback (result)
+  (if result
+      (progn
+        (anaconda-mode-documentation-view result)
+        (other-window -1))
+    (message "No doc found")))
 
 ;;,-----------
 ;;| Projectile
@@ -216,9 +237,8 @@
       company-dabbrev-downcase nil
       company-dabbrev-ignore-case t
       company-backends '((company-capf company-dabbrev-code company-keywords)
-                         company-files company-ispell
-                         (company-ispell ;;company-dabbrev
-                          )))
+                         company-files ;;company-dabbrev
+                         ))
 
 (define-key company-active-map [return] 'newline) ;; I don't want
 ;; company to get in my way
@@ -280,10 +300,6 @@
 (fset 'yes-or-no-p 'y-or-n-p)
 ; M-g to goto line
 (global-set-key [(meta g)] 'goto-line)
-; Start in scratch buffer, in org mode and with no message
-(setq inhibit-startup-screen t
-      initial-major-mode 'org-mode
-      initial-scratch-message nil)
 
 ;;,-------------
 ;;| Backup files
@@ -368,12 +384,7 @@
 ;;,----
 ;;| PHP
 ;;`----
-(defun php-insert-$this ()
-  (interactive)
-  (insert "$this->"))
-
 (require 'php-mode)
-(define-key php-mode-map (kbd "M-s") 'php-insert-$this)
 
 (require 'php-boris)
 (setq php-boris-command "~/source/boris/bin/boris"
@@ -382,12 +393,10 @@
 ;;,-------------------------------------------------
 ;;| Save open buffers and remember position in files
 ;;`-------------------------------------------------
-;;(setq 
-;; [desktop-restore-eager 15]
-;; [desktop-save t]
-;; [desktop-save-mode t]
-;; [save-place t nil (saveplace)]
-;; [save-place-limit 400])
+(require 'saveplace)
+(setq-default save-place t
+              save-place-file "~/.emacs.d/saved-places"
+              save-place-forget-unreadable-files nil)
 
 (delete-selection-mode 1)
 
@@ -471,6 +480,11 @@
 ]+>")))
 	    (org-agenda-overriding-header "Unscheduled TODO entries: ")))))))
 
+(add-hook 'org-mode-hook #'ft/org-hook)
+(defun ft/org-hook ()
+  (visual-line-mode 1)
+  (toggle-word-wrap 1))
+
 ;;(add-to-list 'org-mode-hook
 ;;	     (lambda ()
 ;;	       (org-babel-do-load-languages 'org-babel-load-languages
@@ -542,11 +556,11 @@
 (setq-default flycheck-disabled-checkers '(emacs-lisp-checkdoc)
 	      flycheck-idle-change-delay 0.2
 	      flycheck-display-errors-delay 0.1
-              flycheck-display-errors-function 'flycheck-display-error-messages
+              ;; flycheck-display-errors-function 'flycheck-display-error-messages
               ;; flycheck-display-errors-function 'flycheck-display-error-messages-unless-error-list
               )
-;; (require 'flycheck-tip)
-;; (flycheck-tip-use-timer 'verbose)
+(require 'flycheck-pos-tip)
+(flycheck-pos-tip-mode 1)
 
 ;;,------------------------------
 ;;| Type q in a non-editor window
@@ -599,52 +613,22 @@ It finds the first window where q is not bound to self-insert and type q"
 ;;,-----------------------------
 ;;| Help for symbol under cursor
 ;;`-----------------------------
-(defun ft-anaconda-show-doc-callback (result)
-  (if result
-      (progn
-        (anaconda-mode-documentation-view result)
-        (other-window -1))
-    (message "No doc found")))
+;; go to definition
+(defun ft/elisp-jump-definition ()
+  (interactive)
+  (find-function-do-it (function-called-at-point) nil 'switch-to-buffer))
+(define-key emacs-lisp-mode-map (kbd "C-*") #'ft/elisp-jump-definition)
 
-(defun help-around-cursor ()
-  "Try to be smart and open help/definition for symbol under cursor
-Operation depends on the mode :
-- In emacs-lisp check if symbol under cursor if a function and display its documentation if so
- - Use universal-argument to search for first symbol in sexp
-- Same operation for clojure but lookup in clojure-cheatset
-- I'll add more modes as I need it
-- In undefined modes act as if in amcs-lisp mode"
+;; show doc
+(defun ft/elisp-describe-symbol ()
   (interactive)
   (let ((sym (symbol-at-point)))
-    (cond
-     ((eq major-mode 'clojure-mode) (message "Not yet, sorry"))
-     ((eq major-mode 'slime-repl-mode) (call-interactively 'slime-documentation))
-     ((bound-and-true-p tide-mode) (call-interactively 'tide-documentation-at-point))
-     ((eq major-mode 'python-mode) (anaconda-mode-call "goto_definitions" #'ft-anaconda-show-doc-callback))
-     ((bound-and-true-p robe-mode) (call-interactively 'robe-doc))
-     (t (cond ((or (functionp sym) (macrop sym) (special-form-p sym))
-               (describe-function sym))
-              ((boundp sym) (describe-variable sym))
-              (t (message (concat (symbol-name sym) " not a known symbol, use C-u to search for sexp "))))))))
-
-(global-set-key (kbd "<C-f1>") 'help-around-cursor)
-
-(require 'find-func)
-(defun ft/go-to-definition ()
-  (interactive)
-  (cond
-   ((eq major-mode 'emacs-lisp-mode) (find-function-do-it (function-called-at-point) nil 'switch-to-buffer))
-   ((bound-and-true-p tide-mode) (push-mark) (call-interactively 'tide-jump-to-definition))
-   ((bound-and-true-p anaconda-mode) (call-interactively 'anaconda-mode-goto-definitions))
-   ((bound-and-true-p robe-mode) (call-interactively 'robe-jump))
-   ((bound-and-true-p semantic-mode) (call-interactively 'semantic-ia-fast-jump)))) ; TODO extend for vars, face and other modes
-
-(defun ft/go-to-forward-mouse (nk-event)
-  "Control-click to go to definition like in IntelliJ"
-  (interactive "@e")
-  (posn-set-point (event-end  nk-event))
-  (call-interactively 'ft/go-to-definition))
-(global-set-key (kbd "C-<mouse-1>") #'ft/go-to-forward-mouse)
+    (cond ((or (functionp sym) (macrop sym) (special-form-p sym))
+           (describe-function sym))
+          ((facep sym) (describe-face sym))
+          ((boundp sym) (describe-variable sym))
+          (t (message (concat (symbol-name sym) " not a known symbol, use C-u to search for sexp "))))))
+(define-key emacs-lisp-mode-map (kbd "C-?") #'ft/elisp-describe-symbol)
 
 ;;,------
 ;;| Scala
@@ -676,8 +660,6 @@ Operation depends on the mode :
 ;;,-----
 ;;| Smex
 ;;`-----
-;; Helm is great for a lot of inputs but finding what I want in M-x
-;; with it takes too long
 (require 'smex)
 (smex-initialize)
 (global-set-key (kbd "M-x") 'smex)
@@ -744,34 +726,7 @@ Operation depends on the mode :
          "config" "--add" "remote.origin.fetch"
          fetch-address)))))
 
-;;(add-hook 'magit-mode-hook #'endless/add-PR-fetch)
-
-;;,----------------
-;;| Smart mode line
-;;`----------------
-(column-number-mode)
-(require 'smart-mode-line)
-(sml/setup)
-
-;;,-----------------
-;;| Dsah integration
-;;`-----------------
-;;(require 'helm-dash)
-;;(defun ft/dash-install ()
-;;  (loop for doc in '("Android" "AngularJS" "C" "Clojure" "CodeIgniter" "CSS" "Java_SE7" "jQuery" "MySQL" "PHP" "PHPUnit" "Scala" "SQLite")
-;;	do (helm-dash-install-docset doc)))
-;;
-;;(defmacro ft/mode-set-dash-docsets (mode-hook &rest sets)
-;;  `(add-hook (quote ,mode-hook) (lambda ()
-;;				  (setq-local helm-dash-docsets (quote ,sets)))))
-;;
-;;(add-hook 'php-mode-hook (lambda ()
-;;			   (setq-local helm-dash-docsets '("PHP" "PHPUnit"))))
-;;(ft/mode-set-dash-docsets js-mode-hook "AngularJS" "jQuery")
-;;(ft/mode-set-dash-docsets clojure-mode-hook "Clojure" "Java_SE7")
-;;(ft/mode-set-dash-docsets php-mode-hook "PHP" "PHPUnit" "CodeIgniter")
-;;(ft/mode-set-dash-docsets scala-mode-hook "Scala" "Android")
-;;(setq helm-dash-common-docsets '())
+(add-hook 'magit-mode-hook #'endless/add-PR-fetch)
 
 ;;,--------------------------
 ;;| Maximize frame on startup
@@ -787,15 +742,6 @@ Operation depends on the mode :
 ;;`-------
 (add-hook 'comint-mode-hook (lambda ()
 			      (setq-local undo-limit 1000)))
-
-;;,----------------------
-;;| Relative line numbers
-;;`----------------------
-(use-package relative-line-numbers
-             :init
-             (setq relative-line-numbers-current-line-symbol ">"
-                   relative-line-numbers-motion-function 'forward-visible-line
-                   relative-line-numbers-max-count 9))
 
 ;;,---------
 ;;| God Mode
@@ -821,8 +767,6 @@ Operation depends on the mode :
 (add-hook 'god-mode-disabled-hook (lambda ()
 				    ;; (relative-line-numbers-mode 0)
 				    (ft/god-mode-update-cursor)))
-
-;;(define-key god-local-mode-map (kbd ".") 'repeat)
 
 (defun ft/god-mode-self-insert-for-org ()
   (interactive)
@@ -852,6 +796,7 @@ Operation depends on the mode :
 ;;`------------
 (setq inferior-lisp-program "/usr/bin/sbcl")
 (require 'slime)
+(require 'slime-repl)
 (slime-setup '(slime-fancy
 	       slime-company))
 
@@ -860,6 +805,7 @@ Operation depends on the mode :
 			    (eldoc-mode 1)
 			    (paredit-mode)))
 (add-hook 'slime-repl-mode-hook 'enable-paredit-mode)
+(define-key slime-repl-mode-map (kbd "C-?") #'slime-documentation)
 
 ;; Stop SLIME's REPL from grabbing DEL,
 ;; which is annoying when backspacing over a '('
@@ -926,22 +872,6 @@ window."
 
 (global-set-key (kbd "C-x C-'") #'next-error)
 (global-set-key (kbd "<f5>") #'ff-find-other-file)
-
-;;,-----------------------------
-;;| Dark GTK+ theme if available
-;;`-----------------------------
-;; http://nicolas-petton.fr/blog/emacs-dark-window-decoration.html
-
-(require 'frame-fns)
-(defun set-frame-dark (frame)
-  (if (window-system)
-      (call-process-shell-command (concat "xprop -f _GTK_THEME_VARIANT 8u -set _GTK_THEME_VARIANT \"dark\" -name \""
-					  (get-frame-name frame)
-					  "\""))))
-
-;; (remove-hook after-make-frame-functions #'set-frame-dark)
-
-(set-frame-dark (selected-frame))
 
 ;;,----------------------
 ;;| Clean up the modeline
@@ -1019,17 +949,21 @@ nil."
 ;;| Ruby
 ;;`-----
 (use-package inf-ruby
+  :interpreter "ruby"
   :init
   (setq inf-ruby-default-implementation "pry"))
 
 (use-package robe
+  :mode "\\.rb\\'"
   :init
   (setq robe-completing-read-func 'ido-completing-read)
   :config
   (defun setup-robe ()
     (robe-start)
     (robe-mode))
-  (add-hook 'ruby-mode-hook #'setup-robe))
+  (add-hook 'ruby-mode-hook #'setup-robe)
+  (define-key robe-mode-map (kbd "C-?") #'robe-doc)
+  (define-key robe-mode-map (kbd "C-*") #'robe-jump))
 
 (use-package skewer-mode
              :commands (run-skewer skewer-mode)
@@ -1037,8 +971,19 @@ nil."
              (setq httpd-port 8088
                    httpd-root "~/"))
 
-(use-package tide
-  )
+(use-package typescript-mode
+  :mode "\\.ts\\'"
+  :config
+  (tide-mode 1))
+
+(use-package tide-mode
+  :config
+  (define-key tide-mode-map (kbd "C-?") #'tide-documentation-at-point)
+  (define-key tide-mode-map (kbd "C-*") #'tide-jump-to-definition))
+
+(use-package editorconfig
+  :config
+  (editorconfig-mode 1))
 
 ;;,-----------------
 ;;| Custom powerline

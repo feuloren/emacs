@@ -31,6 +31,7 @@
                                      (powerline-raw "" nil)
                                      (funcall separator-left god-face nil)
                                      (powerline-buffer-id nil 'l)
+                                     (powerline-raw "%*" nil 'l)
                                      (when (and (boundp 'which-func-mode) which-func-mode)
                                        (powerline-raw which-func-format nil 'l))
                                      (when (and (boundp 'erc-track-minor-mode) erc-track-minor-mode)

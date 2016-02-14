@@ -17,7 +17,7 @@
    ;; Essential
    company-mode projectile undo-tree god-mode swiper avy
    ;; Flycheck
-   flycheck flycheck-tip
+   flycheck flycheck-pos-tip
    ;; Web
    php-mode emmet-mode web-mode rainbow-mode
    php-boris php-eldoc js2-mode json-mode
@@ -33,7 +33,7 @@
    visible-mark ace-jump-mode
    visual-regexp-steroids ag
    relative-line-numbers smart-mode-line
-   frame-fns
+   frame-fns editorconfig
    ;; ido
    smex ido-ubiquitous flx-ido ido-vertical-mode
    ;; Dired
@@ -58,6 +58,10 @@
    restclient company-restclient
    ;; Yasnippets
    yasnippet
+   ;; Typescript
+   typescript-mode tide
+   ;; Ruby
+   robe inf-ruby
    ))
 
 (defun install-packages (packages)
