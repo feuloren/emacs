@@ -217,8 +217,8 @@
       company-dabbrev-ignore-case t
       company-backends '((company-capf company-dabbrev-code company-keywords)
                          company-files company-ispell
-                         (company-ispell ;;company-dabbrev
-                          )))
+                         ;;(company-ispell company-dabbrev)
+                         ))
 
 (define-key company-active-map [return] 'newline) ;; I don't want
 ;; company to get in my way
@@ -266,7 +266,9 @@
     (tern-mode t))
   (add-hook 'js2-mode-hook #'js2-hook)
   (add-to-list 'load-path "~/source/tern/emacs")
-  (autoload 'tern-mode "tern.el" nil t))
+  (require 'tern)
+  (define-key tern-mode-keymap (kbd "C-?") #'tern-get-docs)
+  (define-key tern-mode-keymap (kbd "C-*") #'tern-find-definition))
 
 ;;,-----------------------------------
 ;;| Jinja 2 mode with custom functions
@@ -545,8 +547,9 @@
               flycheck-display-errors-function 'flycheck-display-error-messages
               ;; flycheck-display-errors-function 'flycheck-display-error-messages-unless-error-list
               )
-;; (require 'flycheck-tip)
-;; (flycheck-tip-use-timer 'verbose)
+(use-package flycheck-pos-tip
+  :config
+  (flycheck-pos-tip-mode))
 
 ;;,------------------------------
 ;;| Type q in a non-editor window
@@ -745,13 +748,6 @@ Operation depends on the mode :
          fetch-address)))))
 
 ;;(add-hook 'magit-mode-hook #'endless/add-PR-fetch)
-
-;;,----------------
-;;| Smart mode line
-;;`----------------
-(column-number-mode)
-(require 'smart-mode-line)
-(sml/setup)
 
 ;;,-----------------
 ;;| Dsah integration
