@@ -33,7 +33,7 @@
    visible-mark ace-jump-mode
    visual-regexp-steroids ag
    relative-line-numbers smart-mode-line
-   frame-fns powerline company-quickhelp
+   frame-fns powerline company-quickhelp editorconfig
    ;; ido
    smex ido-ubiquitous flx-ido ido-vertical-mode
    ;; Dired
@@ -62,6 +62,10 @@
    swift-mode
    ;; Docker
    docker docker-tramp dockerfile-mode
+   ;; Typescript
+   typescript-mode tide
+   ;; Ruby
+   robe inf-ruby
    ))
 
 (defun install-packages (packages)
