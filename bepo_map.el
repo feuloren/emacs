@@ -23,15 +23,16 @@ _d_: dired             _c_: compile
 
 (defhydra hydra-org (:exit t :hint nil)
   "
-^Clock^    ^Subtree^     ^Insert^        ^Capture^
-_i_: in    _r_: refile   _t_: timestamp  _z_
-_o_: out   _a_: archive
+^Clock^    ^Subtree^     ^Insert^               ^Capture^
+_i_: in    _r_: refile   _t_: timestamp         _z_
+_o_: out   _a_: archive  _T_: active timestamp
 "
   ("z" org-capture)
   ("w" org-capture)
   ("i" org-clock-in)
   ("o" org-agenda-clock-out)
   ("t" org-time-stamp-inactive)
+  ("T" org-time-stamp)
   ("r" org-refile)
   ("a" org-archive-subtree))
 
