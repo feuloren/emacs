@@ -252,6 +252,4 @@ ido keymap is dynamic so this function is called every time ido is called."
 
 (provide 'bepo_map)
 
-(provide 'bepo_map)
-
 ;;; bepo_map.el ends here
