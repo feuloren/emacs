@@ -34,6 +34,7 @@
    visual-regexp-steroids ag
    relative-line-numbers smart-mode-line
    frame-fns powerline company-quickhelp editorconfig
+   expand-region
    ;; ido
    smex ido-ubiquitous flx-ido ido-vertical-mode
    ;; Dired

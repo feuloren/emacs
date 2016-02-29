@@ -62,6 +62,7 @@ _e_: list errors       _t_: correct word
  ("d" ispell-change-dictionary)
  ("l" flyspell-mode)
  ("i" flycheck-next-error)
+ ("u" flycheck-previous-error)
  ("e" flycheck-list-errors)
  ("v" flyspell-buffer))
 
@@ -131,9 +132,10 @@ Optional argument KEYS tr."
   "q" #'ft/god-q
   ;; Org
   "l" #'other-window
+  "M-l" #'ft/backward-other-window
   ;; Undo-tree
   "/" #'undo-tree-undo
-  "+" #'undo-tree-redo
+  "M-/" #'undo-tree-redo
   ;; Yasnippets
   "f" #'ft/yas-insert-snippet
   "F" #'aya-expand ; really cool but need some fixes for god-mode
@@ -249,7 +251,9 @@ ido keymap is dynamic so this function is called every time ido is called."
 ;;This inconvenient for fast input so we'll read any char and substitute the chars produced
 ;;by non-shifted digit keys with their associated digit")
 
-(provide 'bepo_map)
+(defun ft/backward-other-window ()
+  (interactive)
+  (other-window -1))
 
 (provide 'bepo_map)
 

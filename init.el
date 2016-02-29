@@ -101,19 +101,26 @@
   :mode "\\.py\\'"
   :interpreter "python"
   :config
-  (defun ft/python-hook ()
-    (require 'anaconda-mode)
-    (define-key anaconda-mode-map (kbd "C-*") #'ft/anaconda-find-definition)
-    (define-key anaconda-mode-map (kbd "C-?") #'anaconda-mode-show-doc)
-    (anaconda-mode)
-    (eldoc-mode)
-    (require 'pytest)
-    (local-set-key (kbd "C-c C-a") #'pytest-all)
-    (local-set-key (kbd "C-c C-m") #'pytest-module)
-    (run-python "python3"))
-  (add-hook 'python-mode-hook #'ft/python-hook))
+  (add-hook 'python-mode-hook #'ft/python-hook)
+  (add-hook 'python-mode-hook #'anaconda-mode)
+  (add-hook 'python-mode-hook #'eldoc-mode))
 
-(defun ft/anaconda-find-definition ()
+(defun ft/python-hook ()
+  (interactive)
+  (require 'anaconda-mode)
+  (define-key anaconda-mode-map (kbd "C-*") #'anaconda-mode-find-definitions)
+  (define-key anaconda-mode-map (kbd "C-?") #'ft/anaconda-show-doc)
+  (anaconda-mode 1)
+  (eldoc-mode 1)
+  (require 'pytest)
+  (local-set-key (kbd "C-c C-a") #'pytest-all)
+  (local-set-key (kbd "C-c C-m") #'pytest-module)
+  (define-key python-mode-map (kbd "C-x C-e") #'python-shell-send-defun)
+  (when (boundp 'project-venv-name)
+    (venv-workon project-venv-name)
+    (call-interactively 'run-python)))
+
+(defun ft/anaconda-show-doc ()
   (interactive)
   (anaconda-mode-call "goto_definitions" #'ft-anaconda-show-doc-callback))
 
@@ -236,7 +243,8 @@
       company-minimum-prefix-length 1
       company-dabbrev-downcase nil
       company-dabbrev-ignore-case t
-      company-backends '((company-capf company-dabbrev-code company-keywords)
+      company-backends '((company-anaconda) ;; todo: move this to python hook
+                         (company-capf company-dabbrev-code company-keywords)
                          company-files ;;company-dabbrev
                          ))
 
@@ -556,7 +564,7 @@
 (require 'flycheck)
 (global-flycheck-mode)
 (setq-default flycheck-disabled-checkers '(emacs-lisp-checkdoc)
-	      flycheck-idle-change-delay 0.2
+	      flycheck-idle-change-delay 1
 	      flycheck-display-errors-delay 0.1
               ;; flycheck-display-errors-function 'flycheck-display-error-messages
               ;; flycheck-display-errors-function 'flycheck-display-error-messages-unless-error-list
@@ -601,7 +609,7 @@ It finds the first window where q is not bound to self-insert and type q"
         (filename (buffer-file-name)))
     (if (not (and filename (file-exists-p filename)))
         (error "Buffer '%s' is not visiting a file!" name)
-      (let ((new-name (read-file-name "New name: " filename)))
+      (let ((new-name (read-file-name "New name: " (file-name-directory filename))))
         (if (get-buffer new-name)
             (error "A buffer named '%s' already exists!" new-name)
           (rename-file filename new-name 1)
@@ -997,10 +1005,19 @@ nil."
 ;;,--------------------
 ;;| Handle mac keyboard
 ;;`--------------------
-(setq mac-option-key-is-meta nil)
-(setq mac-command-key-is-meta t)
-(setq mac-command-modifier 'meta)
-(setq mac-option-modifier nil)
+(setq mac-option-key-is-meta nil
+      mac-command-key-is-meta t
+      mac-command-modifier 'meta
+      mac-option-modifier nil)
+
+(require 'virtualenvwrapper)
+(venv-initialize-interactive-shells) ;; if you want interactive shell support
+(venv-initialize-eshell) ;; if you want eshell support
+(setq venv-location "/Users/florent/.virtualenvs")
+
+
+
+(define-key prog-mode-map (kbd "C-=") #'imenu)
 
 ;; The end
 (provide 'init)
